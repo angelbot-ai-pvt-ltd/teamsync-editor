@@ -1,0 +1,45 @@
+# Version control
+.git/
+.gitignore
+
+# Node modules (rebuilt in Docker)
+node_modules/
+sample-app/node_modules/
+
+# Environment/secrets
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.*
+*.spec.*
+coverage/
+
+# Development files
+*.md
+docs/
+Makefile
+.eslint*
+.prettier*
+jest.config.*
+
+# Local data
+minio-data/
+certs/
+
+# Docker overrides
+docker-compose.override.yml

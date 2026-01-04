@@ -1,0 +1,170 @@
+# =============================================================================
+# TeamSync Editor - Multi-Variant Docker Compose
+# =============================================================================
+#
+# This docker-compose file runs all three TeamSync variants simultaneously
+# for testing purposes.
+#
+# Usage:
+#   docker-compose -f docker-compose.multi.yml up -d
+#
+# Ports:
+#   - 9980: TeamSync Document (Word processor)
+#   - 9981: TeamSync Sheets (Spreadsheet)
+#   - 9982: TeamSync Presentation
+#   - 8080: Sample Application (WOPI host)
+#
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # TeamSync Document - Word Processor
+  # Handles: .docx, .doc, .odt, .rtf, .txt
+  # ===========================================================================
+  teamsync-document:
+    image: teamsync-document:latest
+    container_name: teamsync-document
+    ports:
+      - "9980:9980"
+    environment:
+      - TEAMSYNC_PRODUCT=document
+      - SSL_ENABLE=false
+      - SSL_TERMINATION=true
+      - LOG_LEVEL=warning
+      - COOL_ADMIN_USER=admin
+      - COOL_ADMIN_PASSWORD=admin123
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    cap_add:
+      - MKNOD
+      - SYS_CHROOT
+      - FOWNER
+      - CHOWN
+    security_opt:
+      - seccomp:unconfined
+    networks:
+      - teamsync-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "--max-time", "30", "http://localhost:9980/hosting/discovery"]
+      interval: 60s
+      timeout: 60s
+      start_period: 300s
+      retries: 10
+    restart: unless-stopped
+
+
+  # ===========================================================================
+  # TeamSync Sheets - Spreadsheet Editor
+  # Handles: .xlsx, .xls, .ods, .csv
+  # ===========================================================================
+  teamsync-sheets:
+    image: teamsync-sheets:latest
+    container_name: teamsync-sheets
+    ports:
+      - "9981:9980"
+    environment:
+      - TEAMSYNC_PRODUCT=sheets
+      - SSL_ENABLE=false
+      - SSL_TERMINATION=true
+      - LOG_LEVEL=warning
+      - COOL_ADMIN_USER=admin
+      - COOL_ADMIN_PASSWORD=admin123
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    cap_add:
+      - MKNOD
+      - SYS_CHROOT
+      - FOWNER
+      - CHOWN
+    security_opt:
+      - seccomp:unconfined
+    networks:
+      - teamsync-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "--max-time", "30", "http://localhost:9980/hosting/discovery"]
+      interval: 60s
+      timeout: 60s
+      start_period: 300s
+      retries: 10
+    restart: unless-stopped
+
+  # ===========================================================================
+  # TeamSync Presentation - Slide Editor
+  # Handles: .pptx, .ppt, .odp
+  # ===========================================================================
+  teamsync-presentation:
+    image: teamsync-presentation:latest
+    container_name: teamsync-presentation
+    ports:
+      - "9982:9980"
+    environment:
+      - TEAMSYNC_PRODUCT=presentation
+      - SSL_ENABLE=false
+      - SSL_TERMINATION=true
+      - LOG_LEVEL=warning
+      - COOL_ADMIN_USER=admin
+      - COOL_ADMIN_PASSWORD=admin123
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    cap_add:
+      - MKNOD
+      - SYS_CHROOT
+      - FOWNER
+      - CHOWN
+    security_opt:
+      - seccomp:unconfined
+    networks:
+      - teamsync-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "--max-time", "30", "http://localhost:9980/hosting/discovery"]
+      interval: 60s
+      timeout: 60s
+      start_period: 300s
+      retries: 10
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Sample Application - WOPI Host & Demo UI
+  # ===========================================================================
+  sample-app:
+    build:
+      context: ./sample-app
+      dockerfile: Dockerfile
+    image: teamsync-sample-app:latest
+    container_name: teamsync-sample-app
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      # Internal URLs (Docker network) - for server-to-server communication
+      - COLLABORA_DOCUMENT_URL=http://teamsync-document:9980
+      - COLLABORA_SHEETS_URL=http://teamsync-sheets:9980
+      - COLLABORA_PRESENTATION_URL=http://teamsync-presentation:9980
+      # Public URLs (localhost) - for browser iframe access
+      - COLLABORA_DOCUMENT_PUBLIC_URL=http://localhost:9980
+      - COLLABORA_SHEETS_PUBLIC_URL=http://localhost:9981
+      - COLLABORA_PRESENTATION_PUBLIC_URL=http://localhost:9982
+      - PUBLIC_URL=http://localhost:8080
+      - WOPI_CALLBACK_URL=http://sample-app:8080
+      - JWT_SECRET=local-dev-secret-key-change-in-production-32chars
+      - STANDALONE_MODE=true
+    depends_on:
+      teamsync-document:
+        condition: service_started
+      teamsync-sheets:
+        condition: service_started
+      teamsync-presentation:
+        condition: service_started
+    networks:
+      - teamsync-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  teamsync-network:
+    driver: bridge

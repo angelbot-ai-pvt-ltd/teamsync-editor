@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =============================================================================
+     TeamSync Editor - Collabora Online Configuration
+     =============================================================================
+     This configuration file controls the coolwsd (Collabora Online WebSocket Daemon)
+     server settings. Security settings are optimized for production use.
+     ============================================================================= -->
+
+<config>
+
+    <!-- =========================================================================
+         Server Settings
+         ========================================================================= -->
+    <server_name desc="External hostname" type="string" default="">office.yourdomain.com</server_name>
+
+    <allowed_languages desc="Allowed languages for the UI" default="de_DE en_GB en_US es_ES fr_FR it_IT nl_NL pt_BR pt_PT ru_RU">en_US en_GB</allowed_languages>
+
+    <sys_template_path desc="Path to system template" type="path" relative="true" default="systemplate">/opt/cool/systemplate</sys_template_path>
+
+    <child_root_path desc="Path for child jails" type="path" relative="true" default="jails">/opt/cool/child-roots</child_root_path>
+
+    <file_server_root_path desc="Path to file server" type="path" relative="true" default="browser/../">/opt/cool/browser/dist</file_server_root_path>
+
+    <!-- =========================================================================
+         WOPI Storage Settings
+         ========================================================================= -->
+    <storage desc="Backend storage options">
+        <wopi desc="WOPI settings">
+            <!-- Allowed WOPI hosts - SECURITY: Only allow your application -->
+            <host desc="Your main application" allow="true">app\.yourdomain\.com</host>
+            <host desc="Office subdomain" allow="true">office\.yourdomain\.com</host>
+
+            <!-- Block all other hosts by default -->
+            <host desc="Block all others" allow="false">.*</host>
+
+            <!-- Maximum file size in bytes (100 MB) -->
+            <max_file_size desc="Maximum file size" default="104857600">104857600</max_file_size>
+
+            <!-- Enable URL rewriting for WOPI -->
+            <reuse_cookies desc="Reuse cookies" type="bool" default="false">false</reuse_cookies>
+        </wopi>
+    </storage>
+
+    <!-- =========================================================================
+         SSL Configuration (Disabled - SSL termination at Nginx)
+         ========================================================================= -->
+    <ssl desc="SSL settings">
+        <enable desc="Enable SSL" type="bool" default="true">false</enable>
+        <termination desc="SSL terminated externally" type="bool" default="true">true</termination>
+
+        <!-- Certificate paths (not used when SSL is disabled) -->
+        <cert_file_path desc="Certificate file path" relative="false">/etc/coolwsd/cert.pem</cert_file_path>
+        <key_file_path desc="Private key path" relative="false">/etc/coolwsd/key.pem</key_file_path>
+        <ca_file_path desc="CA file path" relative="false">/etc/coolwsd/ca-chain.cert.pem</ca_file_path>
+
+        <!-- HSTS settings (handled by Nginx) -->
+        <hpkp desc="HTTP Public Key Pinning" enable="false" report_only="false">
+            <max_age desc="Max age" enable="true">1000</max_age>
+            <report_uri desc="Report URI" enable="false"></report_uri>
+        </hpkp>
+    </ssl>
+
+    <!-- =========================================================================
+         Security Settings
+         ========================================================================= -->
+    <security desc="Security settings">
+        <!-- Enable secure cookies -->
+        <seccomp desc="Enable seccomp" type="bool" default="true">true</seccomp>
+
+        <!-- Capabilities required for document jails -->
+        <capabilities desc="Enable capabilities" type="bool" default="true">true</capabilities>
+
+        <!-- JWT token secret (should match WOPI host) -->
+        <jwt_secret desc="JWT secret for tokens" type="string" default=""><!-- Set via environment variable --></jwt_secret>
+    </security>
+
+    <!-- =========================================================================
+         Network Settings
+         ========================================================================= -->
+    <net desc="Network settings">
+        <!-- Listen on all interfaces (container network) -->
+        <listen desc="Listen address" type="string" default="any">any</listen>
+
+        <!-- Port to listen on -->
+        <port desc="Port" type="uint" default="9980">9980</port>
+
+        <!-- Protocol (WOPI) -->
+        <proto desc="Protocol" type="string" default="all">all</proto>
+
+        <!-- Frame ancestors for embedding -->
+        <frame_ancestors desc="Frame ancestors" type="string" default="">https://app.yourdomain.com</frame_ancestors>
+
+        <!-- PostMessage allowed origins -->
+        <post_allow desc="PostMessage origins" type="string" default="">https://app.yourdomain.com</post_allow>
+    </net>
+
+    <!-- =========================================================================
+         Admin Console (DISABLED for security)
+         ========================================================================= -->
+    <admin_console desc="Admin console settings">
+        <!-- SECURITY: Disabled by default. Enable only if needed. -->
+        <enable desc="Enable admin console" type="bool" default="true">false</enable>
+
+        <!-- If enabled, use strong credentials -->
+        <username desc="Admin username" type="string" default=""></username>
+        <password desc="Admin password" type="string" default=""></password>
+
+        <!-- Admin console allowed IPs (if enabled) -->
+        <enable_pam desc="Enable PAM auth" type="bool" default="false">false</enable_pam>
+    </admin_console>
+
+    <!-- =========================================================================
+         Logging Settings
+         ========================================================================= -->
+    <logging desc="Logging settings">
+        <color desc="Enable color" type="bool">false</color>
+        <level desc="Log level" type="string" default="warning">warning</level>
+        <level_startup desc="Log level at startup" type="string" default="trace">information</level_startup>
+        <most_verbose_level_settable_from_client desc="Max level from client" type="string" default="notice">notice</most_verbose_level_settable_from_client>
+        <least_verbose_level_settable_from_client desc="Min level from client" type="string" default="fatal">fatal</least_verbose_level_settable_from_client>
+
+        <!-- Log file settings (logs to stdout in Docker) -->
+        <file desc="Log file settings" enable="false">
+            <property name="path" desc="Log file path">/var/log/coolwsd/coolwsd.log</property>
+            <property name="rotation" desc="Rotation">never</property>
+            <property name="archive" desc="Archive">timestamp</property>
+            <property name="compress" desc="Compress">true</property>
+            <property name="purgeAge" desc="Purge age">10 days</property>
+            <property name="purgeCount" desc="Purge count">10</property>
+            <property name="rotateOnOpen" desc="Rotate on open">true</property>
+            <property name="flush" desc="Flush">false</property>
+        </file>
+
+        <!-- Enable anonymization of user data in logs -->
+        <anonymize desc="Anonymize settings">
+            <anonymize_user_data desc="Anonymize user data" type="bool" default="false">true</anonymize_user_data>
+            <anonymization_salt desc="Salt" type="uint" default="0">82589933</anonymization_salt>
+        </anonymize>
+    </logging>
+
+    <!-- =========================================================================
+         Trace Settings (Disabled in production)
+         ========================================================================= -->
+    <trace desc="Trace settings" enable="false">
+        <path desc="Trace path" type="path" default="">/var/log/coolwsd/trace.gz</path>
+        <filter desc="Filter settings">
+            <message desc="Filter message" default="">.*</message>
+        </filter>
+        <outgoing desc="Outgoing settings">
+            <record desc="Record" default="false">false</record>
+        </outgoing>
+    </trace>
+
+    <!-- =========================================================================
+         Out of Memory Handling
+         ========================================================================= -->
+    <loleaflet_html desc="Html template">browser/dist/loleaflet.html</loleaflet_html>
+
+    <per_document desc="Per document settings">
+        <max_concurrency desc="Max concurrent operations" type="uint" default="4">4</max_concurrency>
+        <batch_priority desc="Batch priority" type="uint" default="5">5</batch_priority>
+        <document_signing_url desc="Document signing URL" type="string" default=""></document_signing_url>
+        <redlining_as_comments desc="Show redlining as comments" type="bool" default="false">false</redlining_as_comments>
+        <pdf_resolution_dpi desc="PDF resolution" type="uint" default="96">96</pdf_resolution_dpi>
+        <idle_timeout_secs desc="Idle timeout" type="uint" default="3600">3600</idle_timeout_secs>
+        <idlesave_duration_secs desc="Idle save duration" type="int" default="30">30</idlesave_duration_secs>
+        <autosave_duration_secs desc="Autosave duration" type="int" default="300">300</autosave_duration_secs>
+        <always_save_on_exit desc="Always save on exit" type="bool" default="false">true</always_save_on_exit>
+        <limit_virt_mem_mb desc="Virtual memory limit" type="uint" default="0">0</limit_virt_mem_mb>
+        <limit_stack_mem_kb desc="Stack memory limit" type="uint" default="8000">8000</limit_stack_mem_kb>
+        <limit_file_size_mb desc="File size limit" type="uint" default="0">100</limit_file_size_mb>
+        <limit_num_open_files desc="Open files limit" type="uint" default="0">0</limit_num_open_files>
+        <limit_load_secs desc="Load time limit" type="uint" default="100">100</limit_load_secs>
+        <limit_store_failures desc="Store failure limit" type="uint" default="5">5</limit_store_failures>
+        <limit_convert_secs desc="Convert time limit" type="uint" default="100">100</limit_convert_secs>
+        <cleanup desc="Cleanup settings" enable="false">
+            <cleanup_interval_ms desc="Cleanup interval" type="uint" default="10000">10000</cleanup_interval_ms>
+            <bad_behavior_period_secs desc="Bad behavior period" type="uint" default="60">60</bad_behavior_period_secs>
+            <idle_time_secs desc="Idle time" type="uint" default="300">300</idle_time_secs>
+            <lost_kit_grace_period_secs desc="Lost kit grace period" type="uint">120</lost_kit_grace_period_secs>
+        </cleanup>
+    </per_document>
+
+    <!-- =========================================================================
+         Resource Limits
+         ========================================================================= -->
+    <num_prespawn_children desc="Pre-spawned children" type="uint" default="1">2</num_prespawn_children>
+
+    <per_view desc="Per view settings">
+        <out_of_focus_timeout_secs desc="Out of focus timeout" type="uint" default="120">120</out_of_focus_timeout_secs>
+        <idle_timeout_secs desc="Idle timeout" type="uint" default="900">900</idle_timeout_secs>
+    </per_view>
+
+    <!-- =========================================================================
+         Watermarking (Optional)
+         ========================================================================= -->
+    <watermark desc="Watermark settings">
+        <opacity desc="Opacity" type="double" default="0.2">0.2</opacity>
+        <text desc="Watermark text" type="string" default=""></text>
+    </watermark>
+
+    <!-- =========================================================================
+         User Interface Settings
+         ========================================================================= -->
+    <user_interface desc="UI settings">
+        <mode desc="UI mode" type="string" default="default">default</mode>
+        <use_integration_theme desc="Use integration theme" type="bool" default="true">true</use_integration_theme>
+    </user_interface>
+
+</config>

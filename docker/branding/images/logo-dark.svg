@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="200" height="50">
+  <defs>
+    <linearGradient id="brandGradientDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon: Document with sync arrows -->
+  <rect x="5" y="8" width="28" height="34" rx="3" fill="url(#brandGradientDark)"/>
+  <rect x="10" y="16" width="18" height="2" rx="1" fill="white"/>
+  <rect x="10" y="22" width="14" height="2" rx="1" fill="white"/>
+  <rect x="10" y="28" width="16" height="2" rx="1" fill="white"/>
+  <path d="M22 35 L28 38 L22 41" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Text: TeamSync Editor (light text for dark backgrounds) -->
+  <text x="42" y="32" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#f1f5f9">
+    <tspan fill="url(#brandGradientDark)">TeamSync</tspan>
+    <tspan fill="#cbd5e1"> Editor</tspan>
+  </text>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="200" height="50">
+  <defs>
+    <linearGradient id="presGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#dc2626"/>
+      <stop offset="100%" style="stop-color:#b91c1c"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon: Presentation slide -->
+  <rect x="5" y="8" width="30" height="22" rx="2" fill="url(#presGradient)"/>
+  <!-- Screen content -->
+  <rect x="9" y="12" width="12" height="8" rx="1" fill="white" opacity="0.9"/>
+  <rect x="23" y="12" width="8" height="3" rx="0.5" fill="white" opacity="0.7"/>
+  <rect x="23" y="17" width="8" height="3" rx="0.5" fill="white" opacity="0.7"/>
+  <!-- Stand -->
+  <rect x="18" y="30" width="4" height="8" fill="url(#presGradient)"/>
+  <rect x="12" y="38" width="16" height="3" rx="1" fill="url(#presGradient)"/>
+  <!-- Text: TeamSync Presentation -->
+  <text x="42" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#1e293b">
+    <tspan fill="url(#presGradient)">TeamSync</tspan>
+    <tspan fill="#64748b"> Presentation</tspan>
+  </text>
+</svg>

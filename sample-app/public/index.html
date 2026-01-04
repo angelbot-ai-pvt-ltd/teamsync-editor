@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamSync Editor - Sample App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="6" fill="#2563eb"/>
+                    <path d="M8 10h16v2H8zM8 15h12v2H8zM8 20h14v2H8z" fill="white"/>
+                </svg>
+                <span>TeamSync Editor</span>
+            </div>
+            <div class="header-actions">
+                <span id="connection-status" class="status-badge status-disconnected">
+                    Disconnected
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Documents</h2>
+                    <div class="service-indicators" id="service-indicators">
+                        <!-- Service status indicators populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="filter-tabs" id="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">
+                        <span class="tab-icon">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                <rect x="1" y="1" width="5" height="5" rx="1"/>
+                                <rect x="8" y="1" width="5" height="5" rx="1"/>
+                                <rect x="1" y="8" width="5" height="5" rx="1"/>
+                                <rect x="8" y="8" width="5" height="5" rx="1"/>
+                            </svg>
+                        </span>
+                        All
+                    </button>
+                    <button class="filter-tab" data-filter="docx">
+                        <span class="tab-icon doc-icon">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                <path d="M3 1h5l3 3v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/>
+                            </svg>
+                        </span>
+                        Docs
+                    </button>
+                    <button class="filter-tab" data-filter="xlsx">
+                        <span class="tab-icon sheet-icon">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                <path d="M2 1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zm0 4h10M5 5v8"/>
+                            </svg>
+                        </span>
+                        Sheets
+                    </button>
+                    <button class="filter-tab" data-filter="pptx">
+                        <span class="tab-icon pres-icon">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                                <rect x="1" y="2" width="12" height="9" rx="1"/>
+                                <path d="M5 13h4"/>
+                            </svg>
+                        </span>
+                        Slides
+                    </button>
+                </div>
+
+                <div class="document-list" id="document-list">
+                    <div class="loading-spinner" id="loading-docs">
+                        Loading documents...
+                    </div>
+                </div>
+
+                <div class="sidebar-actions">
+                    <button class="btn btn-primary" id="upload-btn">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 1a.5.5 0 0 1 .5.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 .708-.708L7.5 7.293V1.5A.5.5 0 0 1 8 1z" transform="rotate(180, 8, 8)"/>
+                            <path d="M2 12.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
+                        </svg>
+                        Upload Document
+                    </button>
+                    <input type="file" id="file-input" accept=".docx,.doc,.xlsx,.xls,.pptx,.ppt,.odt,.ods,.odp,.rtf,.txt,.csv" hidden>
+                </div>
+            </aside>
+
+            <!-- Editor Container -->
+            <div class="editor-container">
+                <div class="editor-placeholder" id="editor-placeholder">
+                    <div class="placeholder-content">
+                        <div class="product-cards">
+                            <div class="product-card product-document">
+                                <div class="product-icon">
+                                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                        <rect x="8" y="4" width="32" height="40" rx="4" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M16 16h16M16 24h12M16 32h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <h4>TeamSync Document</h4>
+                                <p>.docx, .doc, .odt, .rtf, .txt</p>
+                                <span class="product-status" id="status-document">Checking...</span>
+                            </div>
+                            <div class="product-card product-sheets">
+                                <div class="product-icon">
+                                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                        <rect x="4" y="8" width="40" height="32" rx="4" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M4 18h40M18 18v22" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                <h4>TeamSync Sheets</h4>
+                                <p>.xlsx, .xls, .ods, .csv</p>
+                                <span class="product-status" id="status-sheets">Checking...</span>
+                            </div>
+                            <div class="product-card product-presentation">
+                                <div class="product-icon">
+                                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                                        <rect x="4" y="8" width="40" height="28" rx="4" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M20 42h8M24 36v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                        <rect x="14" y="16" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                <h4>TeamSync Presentation</h4>
+                                <p>.pptx, .ppt, .odp</p>
+                                <span class="product-status" id="status-presentation">Checking...</span>
+                            </div>
+                        </div>
+                        <div class="placeholder-text">
+                            <h3>Select a document to edit</h3>
+                            <p>Choose a document from the sidebar or upload a new one</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="editor-header hidden" id="editor-header">
+                    <div class="editor-doc-info">
+                        <span class="editor-product-badge" id="editor-product-badge">Document</span>
+                        <span class="editor-doc-name" id="editor-doc-name"></span>
+                    </div>
+                    <button class="btn btn-icon" id="close-editor" title="Close document">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    </button>
+                </div>
+                <iframe
+                    id="editor-frame"
+                    class="editor-frame hidden"
+                    allow="clipboard-read; clipboard-write"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+                ></iframe>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-left">
+                <span>Powered by TeamSync Editor</span>
+                <span class="footer-divider">|</span>
+                <span class="footer-ports">
+                    Document: <code>9980</code>
+                    Sheets: <code>9981</code>
+                    Presentation: <code>9982</code>
+                </span>
+            </div>
+            <span id="current-doc"></span>
+        </footer>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal hidden" id="upload-modal">
+        <div class="modal-content">
+            <h3>Upload Document</h3>
+            <div class="upload-type-selector">
+                <button class="upload-type active" data-type="document">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 2h10l6 6v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+                    </svg>
+                    <span>Document</span>
+                </button>
+                <button class="upload-type" data-type="spreadsheet">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+                    </svg>
+                    <span>Spreadsheet</span>
+                </button>
+                <button class="upload-type" data-type="presentation">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="2" y="4" width="20" height="14" rx="2"/>
+                        <path d="M10 22h4M12 18v4"/>
+                    </svg>
+                    <span>Presentation</span>
+                </button>
+            </div>
+            <div class="upload-area" id="upload-area">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <path d="M24 4v28M14 14l10-10 10 10" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 32v8a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-8" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <p>Drag and drop a file here, or click to select</p>
+                <span class="supported-formats" id="supported-formats">Supported: .docx, .doc, .odt, .rtf, .txt</span>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancel-upload">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div class="toast hidden" id="error-toast">
+        <span id="error-message"></span>
+        <button class="toast-close" id="close-toast">&times;</button>
+    </div>
+
+    <!-- Success Toast -->
+    <div class="toast toast-success hidden" id="success-toast">
+        <span id="success-message"></span>
+        <button class="toast-close" id="close-success-toast">&times;</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+================================================================================
+TeamSync Editor
+================================================================================
+
+This software is based on Collabora Online, which is licensed under the
+Mozilla Public License Version 2.0 (MPL-2.0).
+
+ORIGINAL SOFTWARE
+-----------------
+Collabora Online
+Copyright (C) Collabora Ltd.
+Source: https://github.com/CollaboraOnline/online
+License: Mozilla Public License 2.0
+
+LibreOffice
+Copyright (C) The Document Foundation
+Source: https://github.com/LibreOffice/core
+License: Mozilla Public License 2.0
+
+MODIFICATIONS BY TEAMSYNC
+-------------------------
+The following user-visible modifications have been made:
+
+1. Product name changed from "Collabora Online" to "TeamSync Editor"
+2. Logo and branding images replaced with TeamSync branding
+3. Color scheme modified (primary color: #2563eb)
+4. UI text updated to reflect TeamSync branding
+
+COMPLIANCE WITH MPL 2.0
+-----------------------
+In accordance with the Mozilla Public License 2.0:
+
+- All original MPL 2.0 license headers are preserved in source files
+- The original LICENSE file is included in the distribution
+- Only user-visible branding has been modified
+- Source code is available upon request as required by the license
+
+For the full text of the Mozilla Public License 2.0, see:
+https://www.mozilla.org/en-US/MPL/2.0/
+
+SOURCE CODE AVAILABILITY
+------------------------
+The source code for this software, including all modifications, is available at:
+[Your repository URL here]
+
+For questions about licensing or source code access, contact:
+[Your contact information here]
+
+================================================================================

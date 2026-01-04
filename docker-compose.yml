@@ -1,0 +1,88 @@
+# =============================================================================
+# TeamSync Editor - Docker Compose
+# Builds Collabora Online from source with TeamSync branding
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # TeamSync Editor (Collabora Online - Built from Source)
+  # ===========================================================================
+  teamsync-editor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        # LibreOffice core version (pre-built assets)
+        LO_CORE_VERSION: "24.04"
+        # Collabora Online branch/tag
+        COOL_VERSION: "distro/collabora/co-24.04"
+        # Branding
+        BRAND_NAME: "TeamSync Editor"
+        BRAND_SHORT: "TeamSync"
+    image: teamsync-editor:optimized
+    container_name: teamsync_editor
+    restart: unless-stopped
+
+    ports:
+      - "9980:9980"
+
+    environment:
+      # WOPI Host URL - Your application serving WOPI endpoints
+      - WOPI_HOST_URL=${WOPI_HOST_URL:-http://localhost:3000}
+
+      # SSL Configuration (disable for development, use reverse proxy in production)
+      - SSL_ENABLE=false
+      - SSL_TERMINATION=true
+
+      # Dictionaries (space-separated)
+      - DICTIONARIES=${DICTIONARIES:-en_US en_GB}
+
+      # Admin console credentials (optional)
+      - COOL_ADMIN_USER=${COOL_ADMIN_USER:-}
+      - COOL_ADMIN_PASSWORD=${COOL_ADMIN_PASSWORD:-}
+
+      # Log level (trace, debug, information, notice, warning, error, critical, fatal)
+      - LOG_LEVEL=${LOG_LEVEL:-warning}
+
+      # Extra coolwsd parameters (optional)
+      - EXTRA_PARAMS=--o:security.seccomp=false --o:net.frame_ancestors=*
+
+    # Required capabilities for document forking
+    cap_add:
+      - MKNOD
+      - SYS_CHROOT
+      - FOWNER
+      - CHOWN
+      - SYS_ADMIN
+
+    # Security options for namespace operations
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9980/hosting/discovery"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # Longer start period for source-built image
+      start_period: 120s
+
+    # Optional: Mount custom configuration
+    # volumes:
+    #   - ./docker/config/coolwsd.xml:/etc/coolwsd/coolwsd.xml:ro
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

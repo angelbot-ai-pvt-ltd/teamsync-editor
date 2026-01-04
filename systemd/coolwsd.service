@@ -1,0 +1,50 @@
+[Unit]
+Description=TeamSync Editor - Collabora Online Document Editor
+Documentation=https://github.com/CollaboraOnline/online
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=docker
+WorkingDirectory=/opt/teamsync-editor
+
+# Environment file for configuration
+EnvironmentFile=-/opt/teamsync-editor/.env
+
+# Restart policy - always restart to ensure high availability
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+TimeoutStopSec=60
+
+# Pre-start: ensure clean state
+ExecStartPre=-/usr/bin/docker compose -f /opt/teamsync-editor/docker-compose.yml down --remove-orphans
+
+# Start the services
+ExecStart=/usr/bin/docker compose -f /opt/teamsync-editor/docker-compose.yml up --remove-orphans
+
+# Stop the services gracefully
+ExecStop=/usr/bin/docker compose -f /opt/teamsync-editor/docker-compose.yml down
+
+# Reload configuration (docker compose restart)
+ExecReload=/usr/bin/docker compose -f /opt/teamsync-editor/docker-compose.yml restart
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=teamsync-editor
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Security hardening for the systemd service itself
+NoNewPrivileges=false
+ProtectSystem=false
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target
