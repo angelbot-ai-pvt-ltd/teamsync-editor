@@ -56,10 +56,11 @@ jobs:
             echo 'matrix={"include":[{"product":"document"},{"product":"sheets"},{"product":"presentation"}]}' >> $GITHUB_OUTPUT
           fi
 
-  build:
+  # Build AMD64 images (uses pre-built LibreOffice assets - fast)
+  build-amd64:
     needs: prepare
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hours for LibreOffice builds
+    timeout-minutes: 360
     permissions:
       contents: read
       packages: write
@@ -75,7 +76,6 @@ jobs:
         run: |
           echo "Disk space before cleanup:"
           df -h
-          # Remove unnecessary tools to free space for the build
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
@@ -83,6 +83,9 @@ jobs:
           sudo docker image prune --all --force
           echo "Disk space after cleanup:"
           df -h
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -95,33 +98,44 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push TeamSync ${{ matrix.product }}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=
+            type=raw,value=amd64-latest
+
+      - name: Build and push AMD64 TeamSync ${{ matrix.product }}
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/Dockerfile.${{ matrix.product }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.product }}-amd64
+          cache-to: type=gha,mode=max,scope=${{ matrix.product }}-amd64
           platforms: linux/amd64
+          provenance: false
 
       - name: Image size report
         if: github.event_name != 'pull_request'
         run: |
-          echo "### Image Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "### AMD64 Image Size Report" >> $GITHUB_STEP_SUMMARY
           echo "| Image | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
-          SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest --format "{{.Size}}")
-          echo "| teamsync-${{ matrix.product }} | $SIZE |" >> $GITHUB_STEP_SUMMARY
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:amd64-latest
+          SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:amd64-latest --format "{{.Size}}")
+          echo "| teamsync-${{ matrix.product }} (amd64) | $SIZE |" >> $GITHUB_STEP_SUMMARY
 
-  # Build ARM64 images (full source build from LibreOffice)
+  # Build ARM64 images (full source build from LibreOffice - slow)
   build-arm64:
     needs: prepare
-    runs-on: ubuntu-24.04-arm  # GitHub ARM64 runner
-    timeout-minutes: 480  # 8 hours for full source builds
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 480
     permissions:
       contents: read
       packages: write
@@ -167,9 +181,10 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:arm64-latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:arm64-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.product }}-arm64
+          cache-to: type=gha,mode=max,scope=${{ matrix.product }}-arm64
           platforms: linux/arm64
+          provenance: false
 
       - name: Image size report
         run: |
@@ -178,3 +193,51 @@ jobs:
           echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
           SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:arm64-latest --format "{{.Size}}")
           echo "| teamsync-${{ matrix.product }} (arm64) | $SIZE |" >> $GITHUB_STEP_SUMMARY
+
+  # Create multi-platform manifest (combines amd64 and arm64)
+  create-manifest:
+    needs: [prepare, build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.architecture == 'both' &&
+      needs.build-amd64.result == 'success' &&
+      needs.build-arm64.result == 'success'
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-platform manifest
+        run: |
+          # Create manifest for :latest tag
+          docker manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:amd64-latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:arm64-latest
+
+          # Annotate with architecture info
+          docker manifest annotate ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:amd64-latest \
+            --os linux --arch amd64
+
+          docker manifest annotate ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:arm64-latest \
+            --os linux --arch arm64
+
+          # Push the manifest
+          docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest
+
+          echo "### Multi-platform Manifest Created" >> $GITHUB_STEP_SUMMARY
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "Platforms: linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY

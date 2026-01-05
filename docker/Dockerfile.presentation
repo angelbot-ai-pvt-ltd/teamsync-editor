@@ -9,7 +9,7 @@
 # =============================================================================
 # STAGE 1: Builder Base - Install build dependencies
 # =============================================================================
-FROM --platform=linux/amd64 ubuntu:22.04 AS builder-base
+FROM ubuntu:22.04 AS builder-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -185,7 +185,7 @@ RUN find /install/opt/cool/bin -type f -executable \
 # =============================================================================
 # STAGE 4: Runtime Image (Minimal)
 # =============================================================================
-FROM --platform=linux/amd64 ubuntu:22.04 AS runtime
+FROM ubuntu:22.04 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TEAMSYNC_PRODUCT="presentation"

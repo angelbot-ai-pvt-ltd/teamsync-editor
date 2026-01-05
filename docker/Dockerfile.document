@@ -21,7 +21,7 @@
 # =============================================================================
 # STAGE 1: Builder Base - Install build dependencies (cached layer)
 # =============================================================================
-FROM --platform=linux/amd64 ubuntu:22.04 AS builder-base
+FROM ubuntu:22.04 AS builder-base
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -221,7 +221,7 @@ RUN echo "=== BUILD SIZE REPORT ===" \
 # =============================================================================
 # STAGE 4: Production Runtime Image (Minimal footprint)
 # =============================================================================
-FROM --platform=linux/amd64 ubuntu:22.04 AS runtime
+FROM ubuntu:22.04 AS runtime
 
 # Production environment configuration
 ENV DEBIAN_FRONTEND=noninteractive \
