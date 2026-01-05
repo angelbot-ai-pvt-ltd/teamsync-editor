@@ -122,6 +122,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rsync \
     unzip \
     wget \
+    xsltproc \
     xz-utils \
     zip \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
