@@ -241,7 +241,6 @@ RUN echo "==> Configuring LibreOffice build..." \
     --with-system-liblangtag \
     --with-system-librevenge \
     --with-system-clucene \
-    --with-system-xmlsec \
     --with-system-epoxy \
     --with-system-lcms2 \
     --with-parallelism=$(nproc) 2>&1 | tee /build/configure.log
