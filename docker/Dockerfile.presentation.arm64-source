@@ -30,6 +30,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8
 
 # Install build dependencies for LibreOffice compilation
+# LibreOffice requires GCC 12+, Ubuntu 22.04 ships with GCC 11
 # Sorted alphabetically for maintainability and cache optimization
 RUN apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
@@ -38,6 +39,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
     ccache \
+    g++-12 \
+    gcc-12 \
     cmake \
     cpio \
     curl \
@@ -121,7 +124,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     xz-utils \
     zip \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    # Set GCC 12 as default (required by LibreOffice)
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100 \
+    && update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-12 100 \
+    && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-12 100
 
 # Install Node.js 20 LTS (latest LTS for better performance and security)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
