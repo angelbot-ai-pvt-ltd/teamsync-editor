@@ -437,13 +437,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpam0g \
     libzstd1 \
     # Poco runtime libraries (networking, crypto, XML parsing)
-    libpocofoundation94 \
-    libpoconet94 \
-    libpoconetssl94 \
-    libpococrypto94 \
-    libpocoutil94 \
-    libpocoxml94 \
-    libpocojson94 \
+    libpocofoundation111 \
+    libpoconet111 \
+    libpoconetssl111 \
+    libpococrypto111 \
+    libpocoutil111 \
+    libpocoxml111 \
+    libpocojson111 \
     # System utilities
     ca-certificates \
     curl \
