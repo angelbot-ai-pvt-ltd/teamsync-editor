@@ -23,14 +23,14 @@
 # =============================================================================
 # STAGE 1: Builder Base - Install build dependencies (cached layer)
 # =============================================================================
-FROM --platform=linux/arm64 ubuntu:22.04 AS builder-base
+FROM --platform=linux/arm64 ubuntu:24.04 AS builder-base
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
 # Install build dependencies for LibreOffice compilation
-# LibreOffice requires GCC 12+, Ubuntu 22.04 ships with GCC 11
+# Ubuntu 24.04 provides all required library versions for LibreOffice 24.x
 # Sorted alphabetically for maintainability and cache optimization
 RUN apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
@@ -39,8 +39,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
     ccache \
-    g++-12 \
-    gcc-12 \
     cmake \
     cpio \
     curl \
@@ -126,12 +124,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     zip \
     libxml2-utils \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    # Set GCC 12 as default (required by LibreOffice)
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100 \
-    && update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-12 100 \
-    && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-12 100
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install Node.js 20 LTS (latest LTS for better performance and security)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -215,12 +208,14 @@ RUN echo "==> Configuring LibreOffice build (Impress-optimized)..." \
     --with-system-libpng \
     --with-system-jpeg \
     --with-system-boost \
+    --with-system-harfbuzz \
     --with-system-nss \
     --with-system-hunspell \
     --with-system-cairo \
     --with-system-freetype \
     --with-system-fontconfig \
     --with-system-graphite \
+    --with-system-orcus \
     --with-system-libcdr \
     --with-system-libvisio \
     --with-system-libwpd \
@@ -240,6 +235,7 @@ RUN echo "==> Configuring LibreOffice build (Impress-optimized)..." \
     --with-system-liblangtag \
     --with-system-librevenge \
     --with-system-clucene \
+    --with-system-xmlsec \
     --with-system-epoxy \
     --with-system-lcms2 \
     --with-parallelism=$(nproc) 2>&1 | tee /build/configure.log
@@ -403,7 +399,7 @@ RUN echo "=== BUILD SIZE REPORT ===" \
 # =============================================================================
 # STAGE 4: Production Runtime Image (Minimal footprint)
 # =============================================================================
-FROM --platform=linux/arm64 ubuntu:22.04 AS runtime
+FROM --platform=linux/arm64 ubuntu:24.04 AS runtime
 
 # Production environment configuration
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -440,13 +436,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpam0g \
     libzstd1 \
     # Poco runtime libraries (networking, crypto, XML parsing)
-    libpocofoundation80 \
-    libpoconet80 \
-    libpoconetssl80 \
-    libpococrypto80 \
-    libpocoutil80 \
-    libpocoxml80 \
-    libpocojson80 \
+    libpocofoundation94 \
+    libpoconet94 \
+    libpoconetssl94 \
+    libpococrypto94 \
+    libpocoutil94 \
+    libpocoxml94 \
+    libpocojson94 \
     # System utilities
     ca-certificates \
     curl \
@@ -457,11 +453,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Spell checking (English only)
     hunspell \
     hunspell-en-us \
-    # LibreOffice runtime dependencies (ARM64)
+    # LibreOffice runtime dependencies (Ubuntu 24.04 ARM64)
     libfreetype6 \
     libfontconfig1 \
     libharfbuzz0b \
-    libicu70 \
+    libicu74 \
     libexpat1 \
     libxml2 \
     libxslt1.1 \
@@ -469,8 +465,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnspr4 \
     libcairo2 \
     libpixman-1-0 \
-    libglib2.0-0 \
-    libatk1.0-0 \
+    libglib2.0-0t64 \
+    libatk1.0-0t64 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libx11-6 \
@@ -479,10 +475,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libepoxy0 \
     liblcms2-2 \
     libhunspell-1.7-0 \
-    libboost-filesystem1.74.0 \
-    libboost-locale1.74.0 \
+    libboost-filesystem1.83.0 \
+    libboost-locale1.83.0 \
     libgraphite2-3 \
-    liborcus-0.17-0 \
+    liborcus-0.18-0 \
     libcdr-0.1-1 \
     libvisio-0.1-1 \
     libwpd-0.10-10 \
