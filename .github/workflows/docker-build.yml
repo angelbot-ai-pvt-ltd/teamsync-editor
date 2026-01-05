@@ -36,6 +36,11 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}
 
+# Grant GITHUB_TOKEN permissions to push packages
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   # Determine which images to build
   prepare:
