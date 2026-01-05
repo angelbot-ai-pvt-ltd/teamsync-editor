@@ -220,7 +220,6 @@ RUN echo "==> Configuring LibreOffice build (Calc-optimized)..." \
     --with-system-freetype \
     --with-system-fontconfig \
     --with-system-graphite \
-    --with-system-orcus \
     --with-system-libcdr \
     --with-system-libvisio \
     --with-system-libwpd \
