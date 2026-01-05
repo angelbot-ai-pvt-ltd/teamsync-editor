@@ -33,13 +33,7 @@ on:
           - both
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}
-
-# Grant GITHUB_TOKEN permissions to push packages
-permissions:
-  contents: read
-  packages: write
+  DOCKERHUB_NAMESPACE: teamsynceditor
 
 jobs:
   # Determine which images to build
@@ -89,24 +83,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
+      - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=
-            type=ref,event=branch
-            type=ref,event=pr
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push TeamSync ${{ matrix.product }}
         uses: docker/build-push-action@v5
@@ -114,8 +96,9 @@ jobs:
           context: .
           file: docker/Dockerfile.${{ matrix.product }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.DOCKERHUB_NAMESPACE }}/teamsync-${{ matrix.product }}:latest
+            ${{ env.DOCKERHUB_NAMESPACE }}/teamsync-${{ matrix.product }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
@@ -123,11 +106,10 @@ jobs:
       - name: Image size report
         if: github.event_name != 'pull_request'
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest
           echo "### Image Size Report" >> $GITHUB_STEP_SUMMARY
           echo "| Image | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
-          SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest --format "{{.Size}}")
+          SIZE=$(docker images ${{ env.DOCKERHUB_NAMESPACE }}/teamsync-${{ matrix.product }}:latest --format "{{.Size}}")
           echo "| teamsync-${{ matrix.product }} | $SIZE |" >> $GITHUB_STEP_SUMMARY
 
   # Build ARM64 images (full source build from LibreOffice)
@@ -161,21 +143,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}
-          tags: |
-            type=raw,value=arm64-latest
-            type=raw,value=arm64-${{ github.sha }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push ARM64 TeamSync ${{ matrix.product }}
         uses: docker/build-push-action@v5
@@ -183,19 +155,19 @@ jobs:
           context: .
           file: docker/Dockerfile.${{ matrix.product }}.arm64-source
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.DOCKERHUB_NAMESPACE }}/teamsync-${{ matrix.product }}:arm64-latest
+            ${{ env.DOCKERHUB_NAMESPACE }}/teamsync-${{ matrix.product }}:arm64-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/arm64
 
       - name: Image size report
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:arm64-latest
           echo "### ARM64 Image Size Report" >> $GITHUB_STEP_SUMMARY
           echo "| Image | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
-          SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:arm64-latest --format "{{.Size}}")
+          SIZE=$(docker images ${{ env.DOCKERHUB_NAMESPACE }}/teamsync-${{ matrix.product }}:arm64-latest --format "{{.Size}}")
           echo "| teamsync-${{ matrix.product }} (arm64) | $SIZE |" >> $GITHUB_STEP_SUMMARY
 
   # NOTE: Minimal builds are disabled until base images exist in registry
