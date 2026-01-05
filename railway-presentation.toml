@@ -1,9 +1,8 @@
-# TeamSync Document - Railway Configuration
-# Uses pre-built image from GitHub Container Registry
+# TeamSync Presentation - Railway Configuration
 
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "docker/Dockerfile.document"
+dockerfilePath = "docker/Dockerfile.presentation"
 
 [deploy]
 numReplicas = 1
