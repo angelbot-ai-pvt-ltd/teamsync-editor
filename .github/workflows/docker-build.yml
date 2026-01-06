@@ -114,8 +114,10 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.product }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.product }}
+          # Disable cache for source builds to ensure LibreOffice compiles from scratch
+          cache-from: ${{ matrix.product != 'document-source' && format('type=gha,scope={0}', matrix.product) || '' }}
+          cache-to: ${{ matrix.product != 'document-source' && format('type=gha,mode=max,scope={0}', matrix.product) || '' }}
+          no-cache: ${{ matrix.product == 'document-source' }}
           platforms: linux/amd64
           provenance: false
 
