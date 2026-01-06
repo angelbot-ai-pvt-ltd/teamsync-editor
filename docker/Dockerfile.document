@@ -257,14 +257,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     libpam0g \
     libzstd1 \
-    # Poco runtime libraries (networking, crypto, XML parsing) - Ubuntu 24.04 uses version 111
-    libpocofoundation111 \
-    libpoconet111 \
-    libpoconetssl111 \
-    libpococrypto111 \
-    libpocoutil111 \
-    libpocoxml111 \
-    libpocojson111 \
+    # Poco runtime libraries (networking, crypto, XML parsing) - Ubuntu 24.04 uses version 80t64
+    libpocofoundation80t64 \
+    libpoconet80t64 \
+    libpoconetssl80t64 \
+    libpococrypto80t64 \
+    libpocoutil80t64 \
+    libpocoxml80t64 \
+    libpocojson80t64 \
     # System utilities
     ca-certificates \
     curl \
