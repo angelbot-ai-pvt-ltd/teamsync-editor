@@ -5,7 +5,18 @@
 # This docker-compose file runs all three TeamSync variants simultaneously
 # for testing purposes.
 #
+# REQUIRED: Create a .env file with the following variables before running:
+#   JWT_SECRET=<your-secret-here>  # Generate with: openssl rand -base64 32
+#
+# OPTIONAL: Add these to .env for admin console access:
+#   COOL_ADMIN_USER=admin
+#   COOL_ADMIN_PASSWORD=<strong-password>
+#
 # Usage:
+#   # First, create .env file with required variables
+#   echo "JWT_SECRET=$(openssl rand -base64 32)" > .env
+#
+#   # Then start the services
 #   docker-compose -f docker-compose.multi.yml up -d
 #
 # Ports:
@@ -30,9 +41,9 @@ services:
       - TEAMSYNC_PRODUCT=document
       - SSL_ENABLE=false
       - SSL_TERMINATION=true
-      - LOG_LEVEL=warning
-      - COOL_ADMIN_USER=admin
-      - COOL_ADMIN_PASSWORD=admin123
+      - LOG_LEVEL=${LOG_LEVEL:-warning}
+      - COOL_ADMIN_USER=${COOL_ADMIN_USER:-}
+      - COOL_ADMIN_PASSWORD=${COOL_ADMIN_PASSWORD:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     cap_add:
@@ -68,9 +79,9 @@ services:
       - TEAMSYNC_PRODUCT=sheets
       - SSL_ENABLE=false
       - SSL_TERMINATION=true
-      - LOG_LEVEL=warning
-      - COOL_ADMIN_USER=admin
-      - COOL_ADMIN_PASSWORD=admin123
+      - LOG_LEVEL=${LOG_LEVEL:-warning}
+      - COOL_ADMIN_USER=${COOL_ADMIN_USER:-}
+      - COOL_ADMIN_PASSWORD=${COOL_ADMIN_PASSWORD:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     cap_add:
@@ -105,9 +116,9 @@ services:
       - TEAMSYNC_PRODUCT=presentation
       - SSL_ENABLE=false
       - SSL_TERMINATION=true
-      - LOG_LEVEL=warning
-      - COOL_ADMIN_USER=admin
-      - COOL_ADMIN_PASSWORD=admin123
+      - LOG_LEVEL=${LOG_LEVEL:-warning}
+      - COOL_ADMIN_USER=${COOL_ADMIN_USER:-}
+      - COOL_ADMIN_PASSWORD=${COOL_ADMIN_PASSWORD:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     cap_add:
@@ -152,7 +163,7 @@ services:
       - COLLABORA_PRESENTATION_PUBLIC_URL=http://localhost:9982
       - PUBLIC_URL=http://localhost:8080
       - WOPI_CALLBACK_URL=http://sample-app:8080
-      - JWT_SECRET=local-dev-secret-key-change-in-production-32chars
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable is required}
       - STANDALONE_MODE=true
     depends_on:
       teamsync-document:

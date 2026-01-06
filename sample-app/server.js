@@ -22,6 +22,13 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Validate required environment variables
+if (!process.env.JWT_SECRET) {
+    console.error('ERROR: JWT_SECRET environment variable is required.');
+    console.error('Generate one with: openssl rand -base64 32');
+    process.exit(1);
+}
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -54,8 +61,9 @@ const config = {
     wopiCallbackUrl: process.env.WOPI_CALLBACK_URL || 'http://host.docker.internal:8080',
 
     // JWT secret - MUST match the secret used by wopi-host
-    // In production, use a strong random secret (32+ characters)
-    jwtSecret: process.env.JWT_SECRET || 'local-dev-secret-key-change-in-production-32chars',
+    // REQUIRED: Set JWT_SECRET environment variable (32+ characters recommended)
+    // Generate with: openssl rand -base64 32
+    jwtSecret: process.env.JWT_SECRET,
 
     // Token TTL in seconds
     tokenTtlSeconds: parseInt(process.env.TOKEN_TTL || '3600'),
