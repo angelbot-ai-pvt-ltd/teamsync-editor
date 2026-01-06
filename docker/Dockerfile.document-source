@@ -150,7 +150,7 @@ WORKDIR /build
 # =============================================================================
 FROM builder-base AS locore
 
-ARG LO_VERSION=libreoffice-24-2-7
+ARG LO_VERSION=distro/collabora/co-24.04
 ENV LO_BUILD_DIR=/build/libreoffice
 
 WORKDIR /build
