@@ -249,8 +249,9 @@ RUN echo "==> Configuring LibreOffice build..." \
     --with-parallelism=$(nproc) 2>&1 | tee /build/configure.log
 
 # Build LibreOffice (this takes 2-4 hours)
+# Note: Use 'make' not 'make build-nocheck' - that target doesn't exist in all LO versions
 RUN echo "==> Building LibreOffice (this will take several hours)..." \
-    && make -j$(nproc) build-nocheck 2>&1 | tee /build/lo-build.log
+    && make -j$(nproc) 2>&1 | tee /build/lo-build.log
 
 # LibreOffice creates instdir directly - copy it to our staging area
 # Note: LibreOffice doesn't have a traditional "make install" - it builds to instdir
