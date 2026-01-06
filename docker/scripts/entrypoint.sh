@@ -245,6 +245,7 @@ COOLWSD_ARGS=(
     "--o:sys_template_path=/opt/cool/systemplate"
     "--o:file_server_root_path=/opt/cool/share/coolwsd"
     "--o:security.seccomp=false"
+    "--o:security.capabilities=false"
     "--o:mount_jail_tree=false"
 )
 
