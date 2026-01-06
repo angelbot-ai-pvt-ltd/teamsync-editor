@@ -33,39 +33,48 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      build-packages: ${{ steps.set-matrix.outputs.build-packages }}
+      build-source: ${{ steps.set-matrix.outputs.build-source }}
+      package-matrix: ${{ steps.set-matrix.outputs.package-matrix }}
     steps:
       - name: Set build matrix
         id: set-matrix
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             if [ "${{ inputs.image }}" == "all" ]; then
-              echo 'matrix={"include":[{"product":"document","dockerfile":"Dockerfile.document"},{"product":"document-source","dockerfile":"Dockerfile.document-source"},{"product":"sheets","dockerfile":"Dockerfile.sheets"},{"product":"presentation","dockerfile":"Dockerfile.presentation"}]}' >> $GITHUB_OUTPUT
+              echo 'package-matrix={"include":[{"product":"document","dockerfile":"Dockerfile.document"},{"product":"sheets","dockerfile":"Dockerfile.sheets"},{"product":"presentation","dockerfile":"Dockerfile.presentation"}]}' >> $GITHUB_OUTPUT
+              echo "build-packages=true" >> $GITHUB_OUTPUT
+              echo "build-source=true" >> $GITHUB_OUTPUT
+            elif [ "${{ inputs.image }}" == "document-source" ]; then
+              echo 'package-matrix={"include":[]}' >> $GITHUB_OUTPUT
+              echo "build-packages=false" >> $GITHUB_OUTPUT
+              echo "build-source=true" >> $GITHUB_OUTPUT
             else
               PRODUCT="${{ inputs.image }}"
-              if [ "$PRODUCT" == "document-source" ]; then
-                DOCKERFILE="Dockerfile.document-source"
-              else
-                DOCKERFILE="Dockerfile.$PRODUCT"
-              fi
-              echo "matrix={\"include\":[{\"product\":\"$PRODUCT\",\"dockerfile\":\"$DOCKERFILE\"}]}" >> $GITHUB_OUTPUT
+              DOCKERFILE="Dockerfile.$PRODUCT"
+              echo "package-matrix={\"include\":[{\"product\":\"$PRODUCT\",\"dockerfile\":\"$DOCKERFILE\"}]}" >> $GITHUB_OUTPUT
+              echo "build-packages=true" >> $GITHUB_OUTPUT
+              echo "build-source=false" >> $GITHUB_OUTPUT
             fi
           else
             # On push, build all images
-            echo 'matrix={"include":[{"product":"document","dockerfile":"Dockerfile.document"},{"product":"document-source","dockerfile":"Dockerfile.document-source"},{"product":"sheets","dockerfile":"Dockerfile.sheets"},{"product":"presentation","dockerfile":"Dockerfile.presentation"}]}' >> $GITHUB_OUTPUT
+            echo 'package-matrix={"include":[{"product":"document","dockerfile":"Dockerfile.document"},{"product":"sheets","dockerfile":"Dockerfile.sheets"},{"product":"presentation","dockerfile":"Dockerfile.presentation"}]}' >> $GITHUB_OUTPUT
+            echo "build-packages=true" >> $GITHUB_OUTPUT
+            echo "build-source=true" >> $GITHUB_OUTPUT
           fi
 
-  # Build images (platform independent)
-  build:
+  # Build package-based images (fast, ~3 min each)
+  build-packages:
     needs: prepare
+    if: needs.prepare.outputs.build-packages == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 480
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.prepare.outputs.package-matrix) }}
 
     steps:
       - name: Checkout repository
@@ -75,44 +84,12 @@ jobs:
         run: |
           echo "Disk space before cleanup:"
           df -h
-          # Standard cleanup
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           sudo rm -rf /opt/hostedtoolcache/CodeQL
           sudo docker image prune --all --force
-          echo "Disk space after standard cleanup:"
-          df -h
-
-      - name: Aggressive disk cleanup for source builds
-        if: matrix.product == 'document-source'
-        run: |
-          echo "Running aggressive cleanup for LibreOffice source build..."
-          # Remove more cached tools
-          sudo rm -rf /opt/hostedtoolcache
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf /usr/local/.ghcup
-          sudo rm -rf /usr/local/go
-          sudo rm -rf /usr/local/julia*
-          sudo rm -rf /usr/share/swift
-          sudo rm -rf /usr/share/miniconda
-          sudo rm -rf /usr/share/az_*
-          sudo rm -rf /usr/share/gradle*
-          sudo rm -rf /usr/share/sbt
-          sudo rm -rf /opt/microsoft
-          sudo rm -rf /opt/google
-          sudo rm -rf /opt/pipx
-          # Remove large apt packages we don't need
-          sudo apt-get remove -y '^aspnetcore-.*' '^dotnet-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox powershell mono-devel || true
-          sudo apt-get autoremove -y
-          sudo apt-get clean
-          # Clear apt cache
-          sudo rm -rf /var/lib/apt/lists/*
-          sudo rm -rf /var/cache/apt/archives/*
-          # Remove swap file to free space
-          sudo swapoff -a || true
-          sudo rm -f /swapfile || true
-          echo "Disk space after aggressive cleanup:"
+          echo "Disk space after cleanup:"
           df -h
 
       - name: Set up QEMU
@@ -146,10 +123,8 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Disable cache for source builds to ensure LibreOffice compiles from scratch
-          cache-from: ${{ matrix.product != 'document-source' && format('type=gha,scope={0}', matrix.product) || '' }}
-          cache-to: ${{ matrix.product != 'document-source' && format('type=gha,mode=max,scope={0}', matrix.product) || '' }}
-          no-cache: ${{ matrix.product == 'document-source' }}
+          cache-from: type=gha,scope=${{ matrix.product }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.product }}
           platforms: linux/amd64
           provenance: false
 
@@ -163,11 +138,173 @@ jobs:
           SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-${{ matrix.product }}:latest --format "{{.Size}}")
           echo "| teamsync-${{ matrix.product }} | $SIZE |" >> $GITHUB_STEP_SUMMARY
 
+  # Build document-source on larger runner (try paid runner, fallback to free with cleanup)
+  build-source-large:
+    needs: prepare
+    if: needs.prepare.outputs.build-source == 'true'
+    runs-on: ubuntu-latest-16-cores
+    timeout-minutes: 480
+    permissions:
+      contents: read
+      packages: write
+    continue-on-error: true
+    outputs:
+      success: ${{ steps.build.outcome == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check disk space
+        run: |
+          echo "Disk space on larger runner:"
+          df -h
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-document-source
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=
+
+      - name: Build and push TeamSync document-source
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.document-source
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          no-cache: true
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Image size report
+        if: steps.build.outcome == 'success' && github.event_name != 'pull_request'
+        run: |
+          echo "### Image Size Report for document-source" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Size | Runner |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-document-source:latest
+          SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-document-source:latest --format "{{.Size}}")
+          echo "| teamsync-document-source | $SIZE | ubuntu-latest-16-cores |" >> $GITHUB_STEP_SUMMARY
+
+  # Fallback: Build document-source on free runner with aggressive cleanup
+  build-source-fallback:
+    needs: [prepare, build-source-large]
+    if: needs.prepare.outputs.build-source == 'true' && needs.build-source-large.outputs.success != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 480
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Aggressive disk cleanup
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          # Standard cleanup
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo docker image prune --all --force
+          # Aggressive cleanup
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/go
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/miniconda
+          sudo rm -rf /usr/share/az_*
+          sudo rm -rf /usr/share/gradle*
+          sudo rm -rf /usr/share/sbt
+          sudo rm -rf /opt/microsoft
+          sudo rm -rf /opt/google
+          sudo rm -rf /opt/pipx
+          # Remove large apt packages
+          sudo apt-get remove -y '^aspnetcore-.*' '^dotnet-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox powershell mono-devel || true
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo rm -rf /var/cache/apt/archives/*
+          # Remove swap file
+          sudo swapoff -a || true
+          sudo rm -f /swapfile || true
+          echo "Disk space after aggressive cleanup:"
+          df -h
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-document-source
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=
+
+      - name: Build and push TeamSync document-source (fallback)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.document-source
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          no-cache: true
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Image size report
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "### Image Size Report for document-source (Fallback)" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Size | Runner |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-document-source:latest
+          SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-document-source:latest --format "{{.Size}}")
+          echo "| teamsync-document-source | $SIZE | ubuntu-latest (fallback) |" >> $GITHUB_STEP_SUMMARY
+
   # Compare image sizes after all builds complete
   compare-sizes:
-    needs: build
+    needs: [build-packages, build-source-large, build-source-fallback]
+    if: always() && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
     permissions:
       packages: read
     steps:
@@ -192,12 +329,12 @@ jobs:
             if [ "$IMAGE" == "document-source" ]; then
               BUILD_TYPE="Full Source Build"
             else
-              BUILD_TYPE="Pre-built Assets"
+              BUILD_TYPE="Pre-built Packages"
             fi
             echo "| teamsync-${IMAGE} | ${SIZE} | ${BUILD_TYPE} |" >> $GITHUB_STEP_SUMMARY
           done
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Notes" >> $GITHUB_STEP_SUMMARY
-          echo "- **Pre-built Assets**: Uses pre-compiled LibreOffice binaries (fast build, ~30-60 min)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Full Source Build**: Compiles LibreOffice from source with optimizations (slow build, ~3-5 hours)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pre-built Packages**: Uses official Collabora packages (~3 min build)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Full Source Build**: Compiles LibreOffice from source (~3-5 hours)" >> $GITHUB_STEP_SUMMARY
