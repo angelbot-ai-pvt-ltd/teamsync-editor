@@ -163,90 +163,18 @@ RUN echo "==> Cloning LibreOffice core (v${LO_VERSION})..." \
 
 WORKDIR ${LO_BUILD_DIR}
 
-# Configure LibreOffice - optimized for headless server use
-# Disable as many components as possible for smaller/faster build
-RUN echo "==> Configuring LibreOffice build..." \
+# Configure LibreOffice using official Collabora LOKit distro config
+# The --with-distro=CPLinux-LOKit uses the pre-defined configuration that includes:
+# - --enable-mergelibs (CRITICAL: creates libmergedlo.so required by coolwsd)
+# - Optimizations for headless server deployment
+# - All necessary LOKit/LibreOfficeKit components
+# We add --without-package-format to skip package generation and --without-system-icu
+# for Ubuntu 24.04 compatibility (ICU 74 has breakiterator issues)
+RUN echo "==> Configuring LibreOffice build with CPLinux-LOKit distro..." \
     && ./autogen.sh \
-    --prefix=/opt/lokit \
-    --with-vendor="TeamSync" \
-    --with-package-format="" \
-    --disable-odk \
-    --disable-lotuswordpro \
-    --disable-firebird-sdbc \
-    --disable-postgresql-sdbc \
-    --disable-mariadb-sdbc \
-    --disable-gtk3-kde5 \
-    --disable-dbus \
-    --disable-avahi \
-    --disable-gstreamer-1-0 \
-    --disable-cups \
-    --disable-dconf \
-    --disable-gio \
-    --disable-gui \
-    --disable-sdremote \
-    --disable-sdremote-bluetooth \
-    --disable-extension-update \
-    --disable-extensions \
-    --disable-scripting-beanshell \
-    --disable-scripting-javascript \
-    --disable-report-builder \
-    --disable-lpsolve \
-    --disable-coinmp \
-    --disable-pdfium \
-    --disable-pdfimport \
-    --disable-poppler \
-    --disable-skia \
-    --disable-online-update \
-    --disable-ccache \
-    --disable-python \
-    --enable-release-build \
-    --enable-epm \
-    --without-java \
-    --without-junit \
-    --without-doxygen \
-    --without-galleries \
-    --without-helppack-integration \
-    --without-myspell-dicts \
-    --without-fonts \
-    --with-system-curl \
-    --with-system-expat \
+    --with-distro=CPLinux-LOKit \
+    --without-package-format \
     --without-system-icu \
-    --with-system-libxml \
-    --with-system-openssl \
-    --with-system-zlib \
-    --with-system-libpng \
-    --with-system-jpeg \
-    --with-system-boost \
-    --with-system-harfbuzz \
-    --with-system-nss \
-    --with-system-hunspell \
-    --with-system-cairo \
-    --with-system-freetype \
-    --with-system-fontconfig \
-    --with-system-graphite \
-    --with-system-orcus \
-    --with-system-libcdr \
-    --with-system-libvisio \
-    --with-system-libwpd \
-    --with-system-libwpg \
-    --with-system-libwps \
-    --with-system-libmspub \
-    --with-system-libmwaw \
-    --with-system-libebook \
-    --with-system-libabw \
-    --with-system-libetonyek \
-    --with-system-libfreehand \
-    --with-system-libstaroffice \
-    --with-system-libzmf \
-    --with-system-libpagemaker \
-    --with-system-libqxp \
-    --with-system-libnumbertext \
-    --with-system-liblangtag \
-    --with-system-librevenge \
-    --with-system-clucene \
-    --with-system-xmlsec \
-    --with-system-epoxy \
-    --with-system-lcms2 \
     --with-parallelism=$(nproc) 2>&1 | tee /build/configure.log
 
 # Build LibreOffice (this takes 2-4 hours)
