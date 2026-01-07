@@ -143,7 +143,7 @@ LABEL maintainer="TeamSync <support@teamsync.io>" \
       teamsync.filetypes="xlsx,xls,ods,csv" \
       teamsync.version="25.04"
 
-# Install base dependencies
+# Install base dependencies including Poco runtime libraries (required by coolwsd)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg2 \
@@ -155,6 +155,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     hunspell-en-us \
     locales \
     tzdata \
+    # Poco runtime libraries (coolwsd links against these)
+    libpoco-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Add 25.04 CODE repository and install ONLY Calc component
