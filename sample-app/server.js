@@ -77,8 +77,8 @@ const config = {
     // Generate with: openssl rand -base64 32
     jwtSecret: process.env.JWT_SECRET,
 
-    // Token TTL in seconds
-    tokenTtlSeconds: parseInt(process.env.TOKEN_TTL || '3600'),
+    // Token TTL in seconds (8 hours default for better UX)
+    tokenTtlSeconds: parseInt(process.env.TOKEN_TTL || '28800'),
 
     // Demo user info (in production, this comes from your auth system)
     demoUser: {
@@ -407,8 +407,11 @@ async function buildIframeSrc(fileId, accessToken, filename) {
     console.log(`  Internal URL: ${collaboraInternalUrl}`);
     console.log(`  Public URL:   ${collaboraPublicUrl}`);
 
+    // Add cache-busting timestamp to ensure fresh tokens are used
+    const cacheBuster = Date.now();
+
     // Return the PUBLIC URL for the browser iframe
-    return `${collaboraPublicUrl}${urlPath}?WOPISrc=${wopiSrc}&access_token=${accessToken}&lang=en`;
+    return `${collaboraPublicUrl}${urlPath}?WOPISrc=${wopiSrc}&access_token=${accessToken}&lang=en&_t=${cacheBuster}`;
 }
 
 // ============================================================================
