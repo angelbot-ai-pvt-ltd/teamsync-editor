@@ -72,6 +72,25 @@ echo "  Listening on port: $LISTEN_PORT"
 # Build extra params for Railway/cloud deployment
 teamsync_params=""
 
+# =============================================================================
+# Railway/Cloud Platform Compatibility Settings
+# =============================================================================
+# These settings are CRITICAL for running on platforms like Railway, Render,
+# Cloud Run, etc. that don't provide full Linux capabilities.
+#
+# - mount_jail_tree=false: Disable bind-mount based jail (requires SYS_ADMIN)
+# - mount_namespaces=false: Disable mount namespaces (requires SYS_ADMIN)
+# - security.seccomp=false: Disable seccomp filtering (not available)
+# - security.capabilities=true: Use coolforkit-caps with graceful fallback
+#
+# The coolforkit-caps binary will detect missing capabilities and use a
+# copy-based jail setup instead of bind mounts - slower but functional.
+# =============================================================================
+teamsync_params="${teamsync_params} --o:mount_jail_tree=false"
+teamsync_params="${teamsync_params} --o:mount_namespaces=false"
+teamsync_params="${teamsync_params} --o:security.seccomp=false"
+teamsync_params="${teamsync_params} --o:security.capabilities=true"
+
 # Disable SSL for reverse proxy deployments (Railway handles SSL termination)
 teamsync_params="${teamsync_params} --o:ssl.enable=false --o:ssl.termination=true"
 
@@ -120,6 +139,7 @@ if [ "$(id -u)" = "0" ]; then
         exec gosu cool /usr/bin/coolwsd \
             --version \
             --use-env-vars \
+            --disable-cool-user-checking \
             ${cert_params} \
             --o:sys_template_path=/opt/cool/systemplate \
             --o:child_root_path=/opt/cool/child-roots \
@@ -134,6 +154,7 @@ if [ "$(id -u)" = "0" ]; then
         exec runuser -u cool -- /usr/bin/coolwsd \
             --version \
             --use-env-vars \
+            --disable-cool-user-checking \
             ${cert_params} \
             --o:sys_template_path=/opt/cool/systemplate \
             --o:child_root_path=/opt/cool/child-roots \
@@ -152,6 +173,7 @@ fi
 exec /usr/bin/coolwsd \
     --version \
     --use-env-vars \
+    --disable-cool-user-checking \
     ${cert_params} \
     --o:sys_template_path=/opt/cool/systemplate \
     --o:child_root_path=/opt/cool/child-roots \
