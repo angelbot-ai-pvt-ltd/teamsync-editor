@@ -39,7 +39,7 @@ services:
   # Fast build (~5 minutes), uses official Collabora packages
   # ===========================================================================
   teamsync-editor:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-angelbot-ai}/teamsync-editor:latest
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-angelbot-ai-pvt-ltd}/teamsync-editor:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.editor
@@ -109,7 +109,7 @@ services:
   teamsync-editor-source:
     profiles:
       - source
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-angelbot-ai}/teamsync-editor-source:latest
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-angelbot-ai-pvt-ltd}/teamsync-editor-source:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.editor-source

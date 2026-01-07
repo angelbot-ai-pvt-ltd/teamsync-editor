@@ -6,6 +6,6 @@ This product, TeamSync Editor, is a derivative work based on Collabora Online, l
 
     All original Collabora trademarks, logos, and branding have been removed in accordance with their Trademark Policy.
 
-    Modifications to the source code are available at: https://github.com/angelbot-ai/teamsync-editor
+    Modifications to the source code are available at: https://github.com/angelbot-ai-pvt-ltd/teamsync-editor
 
     The integration and branding layer is licensed under the Apache 2.0 License.
