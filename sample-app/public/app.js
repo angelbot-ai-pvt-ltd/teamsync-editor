@@ -473,16 +473,20 @@ class TeamSyncApp {
             this.elements.currentDoc.textContent = `Editing: ${doc.name}`;
 
             // Get WOPI access token and iframe URL from the backend
-            console.log(`[DEBUG] Requesting token for ${doc.id}...`);
+            // Always request fresh token with cache-busting
+            console.log(`[DEBUG] Requesting fresh token for ${doc.id}...`);
             const tokenStartTime = performance.now();
-            const response = await fetch(`${this.config.apiBaseUrl}/documents/${doc.id}/token`, {
+            const response = await fetch(`${this.config.apiBaseUrl}/documents/${doc.id}/token?_t=${Date.now()}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
                 },
                 body: JSON.stringify({
                     permissions: 'edit'
-                })
+                }),
+                cache: 'no-store'
             });
             const tokenElapsed = (performance.now() - tokenStartTime).toFixed(0);
             console.log(`[DEBUG] Token request completed in ${tokenElapsed}ms`);
