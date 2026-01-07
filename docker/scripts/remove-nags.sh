@@ -85,6 +85,11 @@ if [ -f "$BROWSER_DIR/dist/bundle.js" ]; then
     sed -i 's/"This build is not supported."/""/g' "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
     sed -i 's/"Please use a supported version."/""/g' "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
 
+    # Remove "Development Edition (unbranded)" suffix that appears in Help dialog
+    sed -i 's/Development Edition (unbranded)//g' "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
+    sed -i 's/Development Edition//g' "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
+    sed -i 's/(unbranded)//g' "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
+
     echo "  Removed watermark strings from bundle.js"
 else
     echo "  [SKIP] bundle.js not found"

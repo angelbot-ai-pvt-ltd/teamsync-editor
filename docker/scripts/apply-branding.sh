@@ -76,11 +76,18 @@ if [ -f "$BROWSER_DIR/dist/bundle.js" ]; then
     sed -i "s/Collabora Online/$PRODUCT_NAME/g" "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
     # Update about dialog and UI strings
     sed -i "s/Powered by Collabora/Powered by $PRODUCT_SHORT/g" "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
+    # Remove "Development Edition (unbranded)" suffix
+    sed -i 's/Development Edition (unbranded)//g' "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
+    sed -i 's/Development Edition//g' "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
+    sed -i 's/(unbranded)//g' "$BROWSER_DIR/dist/bundle.js" 2>/dev/null || true
 fi
 
 # Update admin bundle if it exists
 if [ -f "$BROWSER_DIR/dist/admin-bundle.js" ]; then
     sed -i "s/$ORIGINAL_BRAND/$PRODUCT_NAME/g" "$BROWSER_DIR/dist/admin-bundle.js" 2>/dev/null || true
+    # Remove "Development Edition" suffix from admin bundle too
+    sed -i 's/Development Edition (unbranded)//g' "$BROWSER_DIR/dist/admin-bundle.js" 2>/dev/null || true
+    sed -i 's/Development Edition//g' "$BROWSER_DIR/dist/admin-bundle.js" 2>/dev/null || true
 fi
 
 # =============================================================================

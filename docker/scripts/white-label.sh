@@ -231,6 +231,17 @@ if [ -f "./browser/package.json" ]; then
     echo "  Updated browser/package.json"
 fi
 
+# Remove "Development Edition (unbranded)" suffix from all files
+echo "  Removing 'Development Edition' suffix..."
+find ./browser -type f \( -name "*.js" -o -name "*.ts" -o -name "*.html" -o -name "*.json" \) 2>/dev/null | while read -r file; do
+    # Skip node_modules
+    [[ "$file" == *"node_modules"* ]] && continue
+    # Remove the suffix patterns
+    sed -i 's/Development Edition (unbranded)//g' "$file" 2>/dev/null || true
+    sed -i 's/Development Edition//g' "$file" 2>/dev/null || true
+    sed -i 's/(unbranded)//g' "$file" 2>/dev/null || true
+done
+
 # Update discovery.xml references
 find . -name "discovery.xml" -type f 2>/dev/null | while read -r file; do
     sed -i "s/Collabora Online/$BRAND_NAME/g" "$file"
