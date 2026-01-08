@@ -197,14 +197,21 @@ RUN echo "==> Configuring LibreOffice build with CPLinux-LOKit distro..." \
 # Build LibreOffice (this takes 2-4 hours)
 # Note: Use 'make' not 'make build-nocheck' - that target doesn't exist in all LO versions
 RUN echo "==> Building LibreOffice (this will take several hours)..." \
-    && make -j$(nproc) 2>&1 | tee /build/lo-build.log
+    && make -j$(nproc) 2>&1 | tee /build/lo-build.log \
+    && echo "==> Verifying LibreOffice build output..." \
+    && ls -la ${LO_BUILD_DIR}/instdir/program/ | head -20 \
+    && if [ ! -f "${LO_BUILD_DIR}/instdir/program/libmergedlo.so" ] && [ ! -f "${LO_BUILD_DIR}/instdir/program/libsofficeapp.so" ]; then \
+         echo "ERROR: LibreOffice build failed - no libmergedlo.so or libsofficeapp.so found!" && exit 1; \
+       fi
 
 # LibreOffice creates instdir directly - copy it to our staging area
 # Note: LibreOffice doesn't have a traditional "make install" - it builds to instdir
 RUN mkdir -p /build/instdir \
     && cp -r ${LO_BUILD_DIR}/instdir/* /build/instdir/ \
     && echo "==> LibreOffice build complete - instdir size:" \
-    && du -sh /build/instdir
+    && du -sh /build/instdir \
+    && echo "==> Verifying libmergedlo.so exists:" \
+    && ls -la /build/instdir/program/libmergedlo.so || ls -la /build/instdir/program/libsofficeapp.so
 
 # Create include directory for LOKit headers
 RUN mkdir -p /build/include \
