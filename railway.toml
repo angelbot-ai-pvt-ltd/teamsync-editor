@@ -1,0 +1,67 @@
+# =============================================================================
+# TeamSync Editor - Railway Deployment Configuration
+# =============================================================================
+#
+# This config deploys the source-built TeamSync Document Editor from GHCR.
+# The image includes all container-friendly security settings pre-configured:
+# - mount_namespaces=false (no SYS_ADMIN capability required)
+# - mount_jail_tree=false (no bind mounts required)
+# - seccomp=false (disabled for container compatibility)
+#
+# =============================================================================
+# REQUIRED ENVIRONMENT VARIABLES (set in Railway Dashboard)
+# =============================================================================
+#
+# PORT                 - Automatically set by Railway (do not override)
+#
+# aliasgroup1          - WOPI host URL for document access
+#                        Example: https://your-wopi-host.railway.app
+#
+# SSL_ENABLE           - Set to "false" (Railway handles SSL termination)
+# SSL_TERMINATION      - Set to "true" (Railway terminates SSL)
+#
+# TEAMSYNC_PRODUCT     - Product type: "editor" (supports all document types)
+#
+# =============================================================================
+# OPTIONAL ENVIRONMENT VARIABLES
+# =============================================================================
+#
+# COOL_ADMIN_USER      - Admin console username
+# COOL_ADMIN_PASSWORD  - Admin console password (will be hashed)
+#
+# LOG_LEVEL            - Logging level: trace, debug, info, warning, error
+#                        Default: "warning"
+#
+# DICTIONARIES         - Space-separated dictionary list
+#                        Default: "en_US"
+#
+# MEMPROPORTION        - Max % of system memory to use
+#                        Default: 80.0
+#
+# MAX_CONNECTIONS      - Maximum concurrent connections
+#                        Default: 100000
+#
+# MAX_DOCUMENTS        - Maximum concurrent documents
+#                        Default: 100000
+#
+# EXTRA_PARAMS         - Additional coolwsd command-line parameters
+#
+# =============================================================================
+
+[build]
+# No build needed - using pre-built image from GHCR
+builder = "nixpacks"
+
+[deploy]
+# Use the source-built image from GitHub Container Registry
+image = "ghcr.io/angelbot-ai-pvt-ltd/teamsync-document-source:latest"
+
+# Railway automatically sets PORT, the entrypoint script handles it
+numReplicas = 1
+sleepApplication = false
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Health check - discovery endpoint confirms service is ready
+healthcheckPath = "/hosting/discovery"
+healthcheckTimeout = 60
