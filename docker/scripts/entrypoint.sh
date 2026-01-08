@@ -211,9 +211,44 @@ case "$TEAMSYNC_PRODUCT" in
 esac
 
 # =============================================================================
+# Patch Security Settings for Container Environment
+# =============================================================================
+# CRITICAL: These must be set in the XML config file BEFORE coolwsd starts
+# because coolwsd reads the config and attempts namespace setup before
+# processing command-line arguments.
+echo "[7/8] Patching security settings for container environment..."
+
+# Disable mount namespaces (requires SYS_ADMIN capability which containers don't have)
+if grep -q "<mount_namespaces>" "$CONFIG_FILE" 2>/dev/null; then
+    sed -i 's|<mount_namespaces>[^<]*</mount_namespaces>|<mount_namespaces>false</mount_namespaces>|g' "$CONFIG_FILE" 2>/dev/null || true
+else
+    # Add mount_namespaces setting before </config>
+    sed -i 's|</config>|    <mount_namespaces>false</mount_namespaces>\n</config>|' "$CONFIG_FILE" 2>/dev/null || true
+fi
+
+# Disable mount_jail_tree (requires SYS_ADMIN for bind mounts)
+if grep -q "<mount_jail_tree>" "$CONFIG_FILE" 2>/dev/null; then
+    sed -i 's|<mount_jail_tree>[^<]*</mount_jail_tree>|<mount_jail_tree>false</mount_jail_tree>|g' "$CONFIG_FILE" 2>/dev/null || true
+else
+    sed -i 's|</config>|    <mount_jail_tree>false</mount_jail_tree>\n</config>|' "$CONFIG_FILE" 2>/dev/null || true
+fi
+
+# Disable seccomp filtering (may not be available in container)
+if grep -q "<seccomp>" "$CONFIG_FILE" 2>/dev/null; then
+    sed -i 's|<seccomp>[^<]*</seccomp>|<seccomp>false</seccomp>|g' "$CONFIG_FILE" 2>/dev/null || true
+else
+    # Add under security section or create it
+    if grep -q "<security>" "$CONFIG_FILE" 2>/dev/null; then
+        sed -i 's|<security>|<security>\n        <seccomp>false</seccomp>|' "$CONFIG_FILE" 2>/dev/null || true
+    fi
+fi
+
+echo "  Patched: mount_namespaces=false, mount_jail_tree=false, seccomp=false"
+
+# =============================================================================
 # Set Permissions
 # =============================================================================
-echo "[7/7] Setting permissions..."
+echo "[8/8] Setting permissions..."
 
 # Ensure cool user owns necessary directories
 chown -R ${COOL_USER}:${COOL_USER} /var/log/coolwsd 2>/dev/null || true
