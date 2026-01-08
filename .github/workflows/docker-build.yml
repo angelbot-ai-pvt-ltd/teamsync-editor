@@ -138,12 +138,11 @@ jobs:
           echo "| teamsync-${{ matrix.product }} | $SIZE |" >> $GITHUB_STEP_SUMMARY
 
   # Build document-source on larger runner (LibreOffice source build needs ~50GB)
-  # Using Paid_Runner for more disk space and CPU
+  # Using ubuntu-latest-m for more disk space and CPU
   build-source:
     needs: prepare
     if: needs.prepare.outputs.build-source == 'true'
-    runs-on:
-      labels: Paid_Runner
+    runs-on: ubuntu-latest-m
     timeout-minutes: 480
     permissions:
       contents: read
@@ -231,7 +230,7 @@ jobs:
           echo "|-------|------|--------|" >> $GITHUB_STEP_SUMMARY
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-document-source:latest
           SIZE=$(docker images ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/teamsync-document-source:latest --format "{{.Size}}")
-          echo "| teamsync-document-source | $SIZE | Paid_Runner |" >> $GITHUB_STEP_SUMMARY
+          echo "| teamsync-document-source | $SIZE | ubuntu-latest-m |" >> $GITHUB_STEP_SUMMARY
 
   # Compare image sizes after all builds complete
   compare-sizes:
