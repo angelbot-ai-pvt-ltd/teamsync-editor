@@ -69,6 +69,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # Clone Collabora Online source (25.04 branch)
+# Match with LibreOffice packages from co-25.04 branch
+# Uses '_LibreOfficeKit' struct naming compatible with Collabora packages
 ARG COOL_VERSION=distro/collabora/co-25.04
 RUN git clone --depth 1 --single-branch --branch ${COOL_VERSION} \
     https://github.com/CollaboraOnline/online.git

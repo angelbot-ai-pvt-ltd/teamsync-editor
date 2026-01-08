@@ -153,7 +153,9 @@ WORKDIR /build
 # =============================================================================
 FROM builder-base AS locore
 
-ARG LO_VERSION=distro/collabora/co-25.04
+# IMPORTANT: LibreOffice and Collabora Online versions MUST match
+# co-25.04.8 headers use '_LibreOfficeKit' struct naming which co-25.04 online expects
+ARG LO_VERSION=distro/collabora/co-25.04.8
 ENV LO_BUILD_DIR=/build/libreoffice
 
 WORKDIR /build
@@ -203,7 +205,8 @@ RUN mkdir -p /build/include \
 # =============================================================================
 FROM locore AS builder
 
-ARG COOL_VERSION=cp-25.04.8-1
+# Match with LibreOffice co-25.04.8 - uses same '_LibreOfficeKit' struct naming
+ARG COOL_VERSION=distro/collabora/co-25.04
 ARG BRAND_NAME="TeamSync Document"
 
 WORKDIR /build
