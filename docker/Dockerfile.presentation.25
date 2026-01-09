@@ -81,10 +81,11 @@ COPY docker/branding/LICENSE_NOTICE.txt /build/branding/
 WORKDIR /build/online/browser
 RUN npm install --no-audit
 
-# Use LibreOfficeKit headers from the installed coolwsd package
-# These headers are bundled with coolwsd and match the Collabora LibreOffice packages
+# Download official LibreOfficeKit headers for 25.04 from Collabora Online releases
+# These headers are maintained by Collabora and match the 25.04 packages
+ARG LOKIT_HEADERS_URL=https://github.com/CollaboraOnline/online/releases/download/for-code-assets/LibreOfficeKit-includes-co-25.04.tar.gz
 RUN mkdir -p /build/lokit-headers \
-    && cp -r /usr/include/LibreOfficeKit /build/lokit-headers/
+    && curl -fsSL ${LOKIT_HEADERS_URL} | tar -xzf - -C /build/lokit-headers --strip-components=1
 
 # Build coolwsd from source with production optimizations
 WORKDIR /build/online
