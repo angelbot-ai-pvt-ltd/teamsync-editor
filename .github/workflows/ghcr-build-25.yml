@@ -84,6 +84,7 @@ jobs:
           docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:25.04
           SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:25.04 --format "{{.Size}}")
           echo "Image size: **$SIZE**" >> $GITHUB_STEP_SUMMARY
+          echo "::notice title=TeamSync Document Size::$SIZE"
 
   build-sheets:
     if: github.event_name == 'push' || inputs.image == 'all' || inputs.image == 'sheets'
@@ -141,6 +142,7 @@ jobs:
           docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:25.04
           SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:25.04 --format "{{.Size}}")
           echo "Image size: **$SIZE**" >> $GITHUB_STEP_SUMMARY
+          echo "::notice title=TeamSync Sheets Size::$SIZE"
 
   build-presentation:
     if: github.event_name == 'push' || inputs.image == 'all' || inputs.image == 'presentation'
@@ -198,3 +200,4 @@ jobs:
           docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:25.04
           SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:25.04 --format "{{.Size}}")
           echo "Image size: **$SIZE**" >> $GITHUB_STEP_SUMMARY
+          echo "::notice title=TeamSync Presentation Size::$SIZE"
