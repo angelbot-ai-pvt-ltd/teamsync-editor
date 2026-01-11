@@ -177,6 +177,9 @@ COOLWSD_ARGS=(
     "--o:mount_namespaces=false"
     "--o:net.proto=IPv4"
     "--o:net.listen=any"
+    # Cache configuration for performance
+    "--o:cache_files.path=/var/cache/coolwsd"
+    "--o:cache_files.expiry_min=1000"
     # Performance tuning (matching official Collabora defaults)
     "--o:num_prespawn_children=4"
     "--o:per_document.max_concurrency=4"
