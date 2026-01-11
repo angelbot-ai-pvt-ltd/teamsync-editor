@@ -22,6 +22,10 @@ on:
           - editor
           - editor-source
 
+# Restrict default permissions for security
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}

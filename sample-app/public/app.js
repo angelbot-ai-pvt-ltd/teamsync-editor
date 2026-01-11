@@ -581,7 +581,7 @@ class TeamSyncApp {
             this.currentDocument = doc;
             this.filterDocuments();
             this.renderDocumentList();
-            this.elements.currentDoc.textContent = `Editing: ${doc.name}`;
+            this.elements.currentDoc.textContent = 'Editing: ' + String(doc.name);
 
             // Get WOPI access token and iframe URL from the backend
             // Always request fresh token with cache-busting

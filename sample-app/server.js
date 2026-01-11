@@ -19,6 +19,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const fs = require('fs');
 const dns = require('dns');
+const rateLimit = require('express-rate-limit');
 
 // Configure DNS to prefer IPv6 for Railway private networking
 // Railway's .internal domains only resolve to IPv6 addresses
@@ -216,6 +217,17 @@ const tokenService = {
 // ============================================================================
 
 /**
+ * Sanitize request parameter to ensure it's a string (not an array)
+ * Prevents type confusion attacks where arrays are passed as params
+ */
+function sanitizeParam(param) {
+    if (Array.isArray(param)) {
+        return String(param[0] || '');
+    }
+    return String(param || '');
+}
+
+/**
  * Middleware to validate WOPI access tokens
  * Extracts token from query param or Authorization header
  */
@@ -234,7 +246,8 @@ function validateWopiToken(req, res, next) {
     }
 
     // Verify the token is for the requested file
-    const fileId = req.params.fileId;
+    // Sanitize fileId to prevent type confusion (could be array)
+    const fileId = sanitizeParam(req.params.fileId);
     if (payload.fileId !== fileId) {
         return res.status(403).json({ error: 'Token not valid for this file' });
     }
@@ -730,11 +743,20 @@ app.post('/api/auth/token', (req, res) => {
 // These endpoints are called by Collabora Online to access documents
 // ============================================================================
 
+// Rate limiter for WOPI endpoints to prevent abuse
+const wopiRateLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute window
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 /**
  * WOPI CheckFileInfo - Get file metadata
  * Called when Collabora opens a document
  */
-app.get('/wopi/files/:fileId', validateWopiToken, (req, res) => {
+app.get('/wopi/files/:fileId', wopiRateLimiter, validateWopiToken, (req, res) => {
     const startTime = Date.now();
     const { fileId } = req.params;
     console.log(`[WOPI] CheckFileInfo request: fileId=${fileId}`);
@@ -1002,7 +1024,7 @@ Collabora Instances:
 Editor Mode: ${config.editorMode}
 
 Authentication:
-  - JWT Secret: ${config.jwtSecret.slice(0, 10)}... (${config.jwtSecret.length} chars)
+  - JWT Secret: [REDACTED] (${config.jwtSecret.length} chars)
   - Token TTL: ${config.tokenTtlSeconds} seconds
   - Demo User: ${config.demoUser.name} (${config.demoUser.id})
 
