@@ -115,6 +115,10 @@ RUN echo "Downloading prebuilt coolwsd artifacts: ${COOLWSD_VERSION}" \
     && rm -rf /tmp/coolwsd-teamsync-* \
     && echo "Prebuilt coolwsd installed successfully"
 
+# Copy custom fonts (Aptos, Noto, Carlito, Caladea, etc.)
+# Includes: Western fonts, Arabic fonts, Indian regional scripts
+COPY docker/fonts/truetype/*.ttf /opt/collaboraoffice/share/fonts/truetype/
+
 # Build fontconfig cache
 RUN fc-cache -fv
 
