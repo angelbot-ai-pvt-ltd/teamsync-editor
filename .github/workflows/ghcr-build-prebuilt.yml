@@ -1,0 +1,187 @@
+# =============================================================================
+# Build and Push Prebuilt Docker Images
+# =============================================================================
+#
+# Uses pre-compiled coolwsd artifacts from GitHub Releases instead of
+# building from source. Build time: ~5-10 minutes (vs 30-60 min for source).
+#
+# PREREQUISITES:
+#   Run the build-artifacts workflow in editor-source repo first to create
+#   a release with the prebuilt artifacts.
+#
+# =============================================================================
+
+name: Build and Push Prebuilt Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docker/Dockerfile.document.prebuilt'
+      - 'docker/Dockerfile.sheets.prebuilt'
+      - 'docker/Dockerfile.presentation.prebuilt'
+      - 'docker/scripts/**'
+      - 'docker/branding/**'
+      - '.github/workflows/ghcr-build-prebuilt.yml'
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Which image to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - document
+          - sheets
+          - presentation
+      coolwsd_version:
+        description: 'Coolwsd artifact version (e.g., v25.04-teamsync.1)'
+        required: true
+        default: 'v25.04-teamsync.1'
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  # Default coolwsd artifact version - update when new artifacts are released
+  COOLWSD_VERSION: ${{ inputs.coolwsd_version || 'v25.04-teamsync.1' }}
+
+jobs:
+  build-document:
+    if: github.event_name == 'push' || inputs.image == 'all' || inputs.image == 'document'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Much shorter than source builds
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push TeamSync Document (Prebuilt)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.document.prebuilt
+          push: true
+          build-args: |
+            COOLWSD_VERSION=${{ env.COOLWSD_VERSION }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:prebuilt
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:prebuilt-${{ env.COOLWSD_VERSION }}
+          cache-from: type=gha,scope=document-prebuilt
+          cache-to: type=gha,mode=max,scope=document-prebuilt
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Report image size
+        run: |
+          echo "### TeamSync Document (Prebuilt)" >> $GITHUB_STEP_SUMMARY
+          echo "Coolwsd Version: **${{ env.COOLWSD_VERSION }}**" >> $GITHUB_STEP_SUMMARY
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:prebuilt
+          SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:prebuilt --format "{{.Size}}")
+          echo "Image size: **$SIZE**" >> $GITHUB_STEP_SUMMARY
+          echo "::notice title=TeamSync Document (Prebuilt) Size::$SIZE"
+
+  build-sheets:
+    if: github.event_name == 'push' || inputs.image == 'all' || inputs.image == 'sheets'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push TeamSync Sheets (Prebuilt)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.sheets.prebuilt
+          push: true
+          build-args: |
+            COOLWSD_VERSION=${{ env.COOLWSD_VERSION }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:prebuilt
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:prebuilt-${{ env.COOLWSD_VERSION }}
+          cache-from: type=gha,scope=sheets-prebuilt
+          cache-to: type=gha,mode=max,scope=sheets-prebuilt
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Report image size
+        run: |
+          echo "### TeamSync Sheets (Prebuilt)" >> $GITHUB_STEP_SUMMARY
+          echo "Coolwsd Version: **${{ env.COOLWSD_VERSION }}**" >> $GITHUB_STEP_SUMMARY
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:prebuilt
+          SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:prebuilt --format "{{.Size}}")
+          echo "Image size: **$SIZE**" >> $GITHUB_STEP_SUMMARY
+          echo "::notice title=TeamSync Sheets (Prebuilt) Size::$SIZE"
+
+  build-presentation:
+    if: github.event_name == 'push' || inputs.image == 'all' || inputs.image == 'presentation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push TeamSync Presentation (Prebuilt)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.presentation.prebuilt
+          push: true
+          build-args: |
+            COOLWSD_VERSION=${{ env.COOLWSD_VERSION }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:prebuilt
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:prebuilt-${{ env.COOLWSD_VERSION }}
+          cache-from: type=gha,scope=presentation-prebuilt
+          cache-to: type=gha,mode=max,scope=presentation-prebuilt
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Report image size
+        run: |
+          echo "### TeamSync Presentation (Prebuilt)" >> $GITHUB_STEP_SUMMARY
+          echo "Coolwsd Version: **${{ env.COOLWSD_VERSION }}**" >> $GITHUB_STEP_SUMMARY
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:prebuilt
+          SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:prebuilt --format "{{.Size}}")
+          echo "Image size: **$SIZE**" >> $GITHUB_STEP_SUMMARY
+          echo "::notice title=TeamSync Presentation (Prebuilt) Size::$SIZE"
