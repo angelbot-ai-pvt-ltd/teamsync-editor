@@ -1,0 +1,157 @@
+# =============================================================================
+# TeamSync Presentation - Prebuilt Artifacts (Impress Only) - FAST BUILD
+# =============================================================================
+#
+# Uses pre-compiled coolwsd artifacts from GitHub Releases instead of
+# building from source. This reduces build time from ~30-60 min to ~5-10 min.
+#
+# Handles: .pptx, .ppt, .odp
+# Target size: ~700-800 MB
+# License: MPL 2.0 Compliant
+#
+# REQUIREMENTS:
+#   - First run the build-artifacts workflow in editor-source repo to create
+#     a release with the prebuilt artifacts
+#   - Set COOLWSD_VERSION build arg to match the release tag
+#
+# =============================================================================
+
+# Build arguments for artifact version
+ARG COOLWSD_VERSION=v25.04-teamsync.1
+ARG ARTIFACT_BASE_URL=https://github.com/angelbot-ai-pvt-ltd/editor-source/releases/download
+
+FROM debian:bookworm-slim AS runtime
+
+# Re-declare ARGs after FROM
+ARG COOLWSD_VERSION
+ARG ARTIFACT_BASE_URL
+
+# Production environment configuration
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TEAMSYNC_PRODUCT="presentation" \
+    # Collabora Online performance tuning defaults
+    MEMPROPORTION=80.0 \
+    MAX_CONNECTIONS=100000 \
+    MAX_DOCUMENTS=10000 \
+    # Disable core dumps in production
+    COOL_NO_DUMP=1
+
+# OCI Image Labels
+LABEL maintainer="TeamSync <support@teamsync.io>" \
+      org.opencontainers.image.title="TeamSync Presentation (Prebuilt)" \
+      org.opencontainers.image.description="Production-optimized collaborative presentation editing - prebuilt artifacts" \
+      org.opencontainers.image.licenses="MPL-2.0" \
+      org.opencontainers.image.vendor="TeamSync" \
+      org.opencontainers.image.source="https://github.com/angelbot-ai-pvt-ltd/teamsync-editor" \
+      teamsync.product="presentation" \
+      teamsync.filetypes="pptx,ppt,odp" \
+      teamsync.coolwsd.version="${COOLWSD_VERSION}"
+
+# Install base dependencies with Poco RUNTIME libraries only (not -dev)
+# This saves ~200-300 MB compared to libpoco-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    gnupg2 \
+    ca-certificates \
+    libcap2-bin \
+    fontconfig \
+    fonts-liberation \
+    hunspell \
+    hunspell-en-us \
+    locales \
+    tzdata \
+    # Poco RUNTIME libraries only (coolwsd dependencies)
+    libpocofoundation80 \
+    libpoconet80 \
+    libpoconetssl80 \
+    libpococrypto80 \
+    libpocoxml80 \
+    libpocoutil80 \
+    libpocojson80 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add 25.04 CODE repository and install ONLY Impress component
+RUN curl -fsSL https://www.collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg \
+        -o /usr/share/keyrings/collaboraonline-release-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/collaboraonline-release-keyring.gpg] https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb /" \
+        > /etc/apt/sources.list.d/collaboraonline.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        # Core runtime (REQUIRED)
+        collaboraofficebasis-core \
+        collaboraoffice-ure \
+        # Impress ONLY (no writer, calc)
+        collaboraofficebasis-impress \
+        # Supporting packages
+        collaboraofficebasis-graphicfilter \
+        collaboraofficebasis-ooofonts \
+        collaboraofficebasis-en-us \
+        # coolwsd-deprecated for coolforkit-caps (Railway compatibility)
+        coolwsd-deprecated \
+    # Remove package-installed coolwsd files (we use prebuilt version)
+    && rm -rf /usr/bin/coolwsd /usr/bin/coolforkit /usr/bin/coolmount \
+              /usr/share/coolwsd /etc/coolwsd \
+              /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Download and extract prebuilt coolwsd artifacts
+# This replaces the entire coolwsd-builder stage from the source build
+RUN echo "Downloading prebuilt coolwsd artifacts: ${COOLWSD_VERSION}" \
+    && curl -fsSL "${ARTIFACT_BASE_URL}/${COOLWSD_VERSION}/coolwsd-teamsync-${COOLWSD_VERSION}.tar.gz" \
+        -o /tmp/coolwsd.tar.gz \
+    && curl -fsSL "${ARTIFACT_BASE_URL}/${COOLWSD_VERSION}/coolwsd-teamsync-${COOLWSD_VERSION}.tar.gz.sha256" \
+        -o /tmp/coolwsd.tar.gz.sha256 \
+    && echo "Verifying checksum..." \
+    && cd /tmp && sha256sum -c coolwsd.tar.gz.sha256 \
+    && echo "Extracting artifacts..." \
+    && tar -xzf /tmp/coolwsd.tar.gz -C / \
+    && rm -rf /tmp/coolwsd.tar.gz /tmp/coolwsd.tar.gz.sha256 \
+    && echo "Prebuilt coolwsd installed successfully"
+
+# Build fontconfig cache
+RUN fc-cache -fv
+
+# Copy runtime branding files to browser directory
+COPY docker/branding/presentation/branding.css /opt/cool/share/coolwsd/browser/dist/branding.css
+COPY docker/branding/presentation/branding.js /opt/cool/share/coolwsd/browser/dist/branding.js
+COPY docker/branding/presentation/branding-desktop.css /opt/cool/share/coolwsd/browser/dist/branding-desktop.css
+
+# Copy license notice
+COPY docker/branding/LICENSE_NOTICE.txt /opt/cool/LICENSE_NOTICE.txt
+
+# Ensure cool user and group exist
+# Create directories and set permissions in a single layer
+RUN (getent group cool || groupadd -r cool) \
+    && (getent passwd cool || useradd -r -g cool -d /opt/cool -s /bin/false cool) \
+    && mkdir -p /opt/cool/child-roots \
+                /opt/cool/systemplate \
+                /opt/cool/etc/coolwsd \
+                /var/log/coolwsd \
+                /var/cache/coolwsd \
+                /tmp/coolwsd \
+                /tmp/ssl \
+    && chown -R cool:cool /opt/cool \
+                          /var/log/coolwsd \
+                          /var/cache/coolwsd \
+                          /tmp/coolwsd \
+                          /tmp/ssl \
+    # Set capabilities on coolforkit-caps for local testing
+    && setcap cap_fowner,cap_chown,cap_sys_chroot=ep /opt/cool/bin/coolforkit-caps 2>/dev/null || true
+
+# Copy entrypoint script
+COPY --chmod=755 docker/scripts/entrypoint-25.sh /start.sh
+
+# Expose default port
+EXPOSE 9980
+
+# Production-ready healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=3 \
+    CMD curl -sf http://localhost:${PORT:-9980}/hosting/discovery > /dev/null || exit 1
+
+WORKDIR /opt/cool
+
+# Run as cool user (required by coolwsd - it refuses to run as root)
+USER cool
+
+ENTRYPOINT ["/start.sh"]
