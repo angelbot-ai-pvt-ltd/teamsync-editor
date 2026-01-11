@@ -7,6 +7,10 @@ on:
     - cron: '0 2 * * 0'
   workflow_dispatch:
 
+# Restrict default permissions for security
+permissions:
+  contents: read
+
 env:
   REGISTRY: docker.io
   IMAGE_PREFIX: ${{ vars.DOCKERHUB_USERNAME || 'teamsync' }}
@@ -15,6 +19,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
