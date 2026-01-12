@@ -37,15 +37,15 @@ on:
           - sheets
           - presentation
       coolwsd_version:
-        description: 'Coolwsd artifact version (e.g., v25.04-teamsync.5)'
+        description: 'Coolwsd artifact version (e.g., v25.04-teamsync.6)'
         required: true
-        default: 'v25.04-teamsync.5'
+        default: 'v25.04-teamsync.6'
         type: string
 
 env:
   REGISTRY: ghcr.io
   # Default coolwsd artifact version - update when new artifacts are released
-  COOLWSD_VERSION: ${{ inputs.coolwsd_version || 'v25.04-teamsync.5' }}
+  COOLWSD_VERSION: ${{ inputs.coolwsd_version || 'v25.04-teamsync.6' }}
 
 jobs:
   build-document:
@@ -78,6 +78,7 @@ jobs:
           build-args: |
             COOLWSD_VERSION=${{ env.COOLWSD_VERSION }}
           tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:latest
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:prebuilt
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-document:prebuilt-${{ env.COOLWSD_VERSION }}
           cache-from: type=gha,scope=document-prebuilt
@@ -124,6 +125,7 @@ jobs:
           build-args: |
             COOLWSD_VERSION=${{ env.COOLWSD_VERSION }}
           tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:latest
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:prebuilt
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-sheets:prebuilt-${{ env.COOLWSD_VERSION }}
           cache-from: type=gha,scope=sheets-prebuilt
@@ -170,6 +172,7 @@ jobs:
           build-args: |
             COOLWSD_VERSION=${{ env.COOLWSD_VERSION }}
           tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:latest
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:prebuilt
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:prebuilt-${{ env.COOLWSD_VERSION }}
           cache-from: type=gha,scope=presentation-prebuilt
