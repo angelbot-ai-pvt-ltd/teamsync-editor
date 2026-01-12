@@ -1,12 +1,13 @@
 # =============================================================================
-# TeamSync Presentation - Prebuilt Artifacts (Impress Only) - FAST BUILD
+# TeamSync Editor - Prebuilt Artifacts (All-in-One) - FAST BUILD
 # =============================================================================
 #
 # Uses pre-compiled coolwsd artifacts from GitHub Releases instead of
 # building from source. This reduces build time from ~30-60 min to ~5-10 min.
 #
-# Handles: .pptx, .ppt, .odp
-# Target size: ~700-800 MB
+# Includes ALL components: Writer, Calc, and Impress
+# Handles: .docx, .doc, .odt, .rtf, .txt, .xlsx, .xls, .ods, .csv, .pptx, .ppt, .odp
+# Target size: ~900-1000 MB
 # License: MPL 2.0 Compliant
 #
 # REQUIREMENTS:
@@ -17,7 +18,7 @@
 # =============================================================================
 
 # Build arguments for artifact version
-ARG COOLWSD_VERSION=v25.04-teamsync.7
+ARG COOLWSD_VERSION=v25.04-teamsync.6
 ARG ARTIFACT_BASE_URL=https://github.com/angelbot-ai-pvt-ltd/editor-source/releases/download
 
 FROM debian:bookworm-slim AS runtime
@@ -30,7 +31,7 @@ ARG ARTIFACT_BASE_URL
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    TEAMSYNC_PRODUCT="presentation" \
+    TEAMSYNC_PRODUCT="editor" \
     # Collabora Online performance tuning defaults
     MEMPROPORTION=80.0 \
     MAX_CONNECTIONS=100000 \
@@ -40,13 +41,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # OCI Image Labels
 LABEL maintainer="TeamSync <support@teamsync.io>" \
-      org.opencontainers.image.title="TeamSync Presentation (Prebuilt)" \
-      org.opencontainers.image.description="Production-optimized collaborative presentation editing - prebuilt artifacts" \
+      org.opencontainers.image.title="TeamSync Editor (Prebuilt)" \
+      org.opencontainers.image.description="Production-optimized collaborative office suite - all components (Writer, Calc, Impress)" \
       org.opencontainers.image.licenses="MPL-2.0" \
       org.opencontainers.image.vendor="TeamSync" \
       org.opencontainers.image.source="https://github.com/angelbot-ai-pvt-ltd/teamsync-editor" \
-      teamsync.product="presentation" \
-      teamsync.filetypes="pptx,ppt,odp" \
+      teamsync.product="editor" \
+      teamsync.filetypes="docx,doc,odt,rtf,txt,xlsx,xls,ods,csv,pptx,ppt,odp" \
       teamsync.coolwsd.version="${COOLWSD_VERSION}"
 
 # Install base dependencies with Poco RUNTIME libraries only (not -dev)
@@ -72,7 +73,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpocojson80 \
     && rm -rf /var/lib/apt/lists/*
 
-# Add 25.04 CODE repository and install ONLY Impress component
+# Add 25.04 CODE repository and install ALL components (Writer, Calc, Impress)
 RUN curl -fsSL https://www.collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg \
         -o /usr/share/keyrings/collaboraonline-release-keyring.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/collaboraonline-release-keyring.gpg] https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb /" \
@@ -82,7 +83,11 @@ RUN curl -fsSL https://www.collaboraoffice.com/downloads/gpg/collaboraonline-rel
         # Core runtime (REQUIRED)
         collaboraofficebasis-core \
         collaboraoffice-ure \
-        # Impress ONLY (no writer, calc)
+        # Writer component
+        collaboraofficebasis-writer \
+        # Calc component
+        collaboraofficebasis-calc \
+        # Impress component
         collaboraofficebasis-impress \
         # Supporting packages
         collaboraofficebasis-graphicfilter \
@@ -123,9 +128,9 @@ COPY docker/fonts/truetype/*.ttf /opt/collaboraoffice/share/fonts/truetype/
 RUN fc-cache -fv
 
 # Copy runtime branding files to browser directory
-COPY docker/branding/presentation/branding.css /opt/cool/share/coolwsd/browser/dist/branding.css
-COPY docker/branding/presentation/branding.js /opt/cool/share/coolwsd/browser/dist/branding.js
-COPY docker/branding/presentation/branding-desktop.css /opt/cool/share/coolwsd/browser/dist/branding-desktop.css
+COPY docker/branding/editor/branding.css /opt/cool/share/coolwsd/browser/dist/branding.css
+COPY docker/branding/editor/branding.js /opt/cool/share/coolwsd/browser/dist/branding.js
+COPY docker/branding/editor/branding-desktop.css /opt/cool/share/coolwsd/browser/dist/branding-desktop.css
 
 # Copy license notice
 COPY docker/branding/LICENSE_NOTICE.txt /opt/cool/LICENSE_NOTICE.txt

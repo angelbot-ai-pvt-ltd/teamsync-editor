@@ -1,0 +1,10 @@
+/* =============================================================================
+ * TeamSync Editor - Runtime Branding CSS
+ * All-in-one variant - Minimal overrides, keep default toolbar colors
+ * ============================================================================= */
+
+/* Hide Collabora branding elements in dialogs */
+.about-dialog .logo-collabora,
+#about-dialog .collabora-logo {
+    display: none !important;
+}

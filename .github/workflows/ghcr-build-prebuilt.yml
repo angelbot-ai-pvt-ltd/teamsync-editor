@@ -21,6 +21,7 @@ on:
       - 'docker/Dockerfile.document.prebuilt'
       - 'docker/Dockerfile.sheets.prebuilt'
       - 'docker/Dockerfile.presentation.prebuilt'
+      - 'docker/Dockerfile.editor.prebuilt'
       - 'docker/scripts/**'
       - 'docker/branding/**'
       - '.github/workflows/ghcr-build-prebuilt.yml'
@@ -36,6 +37,7 @@ on:
           - document
           - sheets
           - presentation
+          - editor
       coolwsd_version:
         description: 'Coolwsd artifact version (e.g., v25.04-teamsync.6)'
         required: true
@@ -188,3 +190,51 @@ jobs:
           SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-presentation:prebuilt --format "{{.Size}}")
           echo "Image size: **$SIZE**" >> $GITHUB_STEP_SUMMARY
           echo "::notice title=TeamSync Presentation (Prebuilt) Size::$SIZE"
+
+  build-editor:
+    if: github.event_name == 'push' || inputs.image == 'all' || inputs.image == 'editor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push TeamSync Editor (Prebuilt)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.editor.prebuilt
+          push: true
+          build-args: |
+            COOLWSD_VERSION=${{ env.COOLWSD_VERSION }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-editor:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-editor:prebuilt
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-editor:prebuilt-${{ env.COOLWSD_VERSION }}
+          cache-from: type=gha,scope=editor-prebuilt
+          cache-to: type=gha,mode=max,scope=editor-prebuilt
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Report image size
+        run: |
+          echo "### TeamSync Editor (Prebuilt - All-in-One)" >> $GITHUB_STEP_SUMMARY
+          echo "Coolwsd Version: **${{ env.COOLWSD_VERSION }}**" >> $GITHUB_STEP_SUMMARY
+          echo "Components: **Writer, Calc, Impress**" >> $GITHUB_STEP_SUMMARY
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-editor:prebuilt
+          SIZE=$(docker images ${{ env.REGISTRY }}/${{ github.repository_owner }}/teamsync-editor:prebuilt --format "{{.Size}}")
+          echo "Image size: **$SIZE**" >> $GITHUB_STEP_SUMMARY
+          echo "::notice title=TeamSync Editor (Prebuilt) Size::$SIZE"
