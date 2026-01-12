@@ -10,6 +10,7 @@
 # Claude instructions
 claude.md
 CLAUDE.md
+.claude/
 
 # Node.js
 node_modules/
