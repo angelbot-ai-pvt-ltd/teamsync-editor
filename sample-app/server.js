@@ -8,7 +8,7 @@
  * 1. Your app authenticates users (OAuth2, session, etc.)
  * 2. Your app generates a JWT signed with the shared JWT_SECRET
  * 3. The JWT is used as the WOPI access_token
- * 4. Collabora Online passes this token back to WOPI endpoints
+ * 4. TeamSync Editor passes this token back to WOPI endpoints
  * 5. WOPI endpoints validate the JWT and serve the document
  */
 
@@ -43,46 +43,36 @@ const config = {
     // WOPI Host URL - for proxy mode
     wopiHostUrl: process.env.WOPI_HOST_URL || 'http://localhost:3000',
 
-    // Collabora Online URLs (the actual editor servers) - INTERNAL URLs for server-to-server communication
+    // TeamSync Editor URLs (the actual editor servers) - INTERNAL URLs for server-to-server communication
     // These are used for health checks and discovery fetching from within Docker network
     // Single server mode (backward compatible)
-    collaboraUrl: process.env.COLLABORA_URL || 'http://localhost:9980',
+    editorUrl: process.env.TEAMSYNC_URL || 'http://localhost:9980',
 
     // Multi-variant mode - separate servers for each document type (internal Docker network URLs)
-    collaboraDocumentUrl: process.env.COLLABORA_DOCUMENT_URL || process.env.COLLABORA_URL || 'http://localhost:9980',
-    collaboraSheetsUrl: process.env.COLLABORA_SHEETS_URL || process.env.COLLABORA_URL || 'http://localhost:9981',
-    collaboraPresentationUrl: process.env.COLLABORA_PRESENTATION_URL || process.env.COLLABORA_URL || 'http://localhost:9982',
+    documentEditorUrl: process.env.TEAMSYNC_DOCUMENT_URL || process.env.TEAMSYNC_URL || 'http://localhost:9980',
+    sheetsEditorUrl: process.env.TEAMSYNC_SHEETS_URL || process.env.TEAMSYNC_URL || 'http://localhost:9981',
+    presentationEditorUrl: process.env.TEAMSYNC_PRESENTATION_URL || process.env.TEAMSYNC_URL || 'http://localhost:9982',
 
     // TeamSync Editor - unified editor handling ALL document types (internal Docker network URL)
-    collaboraEditorUrl: process.env.COLLABORA_EDITOR_URL || 'http://localhost:9983',
-
-    // Official Collabora CODE Docker instance (Railway deployed or local)
-    collaboraOfficialUrl: process.env.COLLABORA_OFFICIAL_URL || 'http://localhost:9984',
-
-    // TeamSync Document Source - built from Collabora source (Railway deployed)
-    documentSourceUrl: process.env.DOCUMENT_SOURCE_URL || 'http://localhost:9985',
+    unifiedEditorUrl: process.env.TEAMSYNC_EDITOR_URL || 'http://localhost:9983',
 
     // PUBLIC URLs for browser access - these are what the browser iframe will use
     // When running in Docker, the browser needs localhost URLs to access the exposed ports
-    collaboraDocumentPublicUrl: process.env.COLLABORA_DOCUMENT_PUBLIC_URL || 'http://localhost:9980',
-    collaboraSheetsPublicUrl: process.env.COLLABORA_SHEETS_PUBLIC_URL || 'http://localhost:9981',
-    collaboraPresentationPublicUrl: process.env.COLLABORA_PRESENTATION_PUBLIC_URL || 'http://localhost:9982',
-    collaboraEditorPublicUrl: process.env.COLLABORA_EDITOR_PUBLIC_URL || 'http://localhost:9983',
-    collaboraOfficialPublicUrl: process.env.COLLABORA_OFFICIAL_PUBLIC_URL || 'http://localhost:9984',
-    documentSourcePublicUrl: process.env.DOCUMENT_SOURCE_PUBLIC_URL || 'http://localhost:9985',
+    documentEditorPublicUrl: process.env.TEAMSYNC_DOCUMENT_PUBLIC_URL || 'http://localhost:9980',
+    sheetsEditorPublicUrl: process.env.TEAMSYNC_SHEETS_PUBLIC_URL || 'http://localhost:9981',
+    presentationEditorPublicUrl: process.env.TEAMSYNC_PRESENTATION_PUBLIC_URL || 'http://localhost:9982',
+    unifiedEditorPublicUrl: process.env.TEAMSYNC_EDITOR_PUBLIC_URL || 'http://localhost:9983',
 
-    // Editor mode: 'teamsync-unified' | 'multi-editor' | 'collabora' | 'document-source'
+    // Editor mode: 'teamsync-unified' | 'multi-editor'
     // - teamsync-unified: Use single TeamSync Editor for all documents
     // - multi-editor: Use specialized TeamSync editors (Document/Sheets/Presentation)
-    // - collabora: Use official Collabora CODE Docker image
-    // - document-source: Use TeamSync Document Source (built from Collabora source)
     editorMode: process.env.EDITOR_MODE || 'teamsync-unified',
 
     // This sample app's public URL (for browser access)
     publicUrl: process.env.PUBLIC_URL || 'http://localhost:8080',
 
-    // WOPI callback URL - what Collabora (inside Docker) uses to reach this app
-    // When running in Docker, Collabora needs host.docker.internal to reach the host
+    // WOPI callback URL - what TeamSync Editor (inside Docker) uses to reach this app
+    // When running in Docker, the editor needs host.docker.internal to reach the host
     wopiCallbackUrl: process.env.WOPI_CALLBACK_URL || 'http://host.docker.internal:8080',
 
     // JWT secret - MUST match the secret used by wopi-host
@@ -111,7 +101,7 @@ const config = {
 const tokenService = {
     /**
      * Generate a WOPI access token (JWT)
-     * This token is passed to Collabora and returned to WOPI endpoints
+     * This token is passed to TeamSync Editor and returned to WOPI endpoints
      */
     generateWopiToken(fileId, user, permissions = 'edit') {
         const payload = {
@@ -288,7 +278,7 @@ function validateAppAuth(req, res, next) {
 }
 
 // ============================================================================
-// File Type Detection & Collabora URL Routing
+// File Type Detection & Editor URL Routing
 // ============================================================================
 
 /**
@@ -309,80 +299,72 @@ function getDocumentType(filename) {
 }
 
 /**
- * Get the appropriate Collabora URL for a document type (internal Docker network)
+ * Get the appropriate editor URL for a document type (internal Docker network)
  * Used for server-to-server communication (health checks, discovery)
  * @param {string} docType - The document type (document, spreadsheet, presentation)
- * @param {string} editorMode - The editor mode (teamsync-unified, multi-editor, collabora)
+ * @param {string} editorMode - The editor mode (teamsync-unified, multi-editor)
  */
-function getCollaboraUrlForType(docType, editorMode = config.editorMode) {
+function getEditorUrlForType(docType, editorMode = config.editorMode) {
     // Route based on editor mode
     if (editorMode === 'teamsync-unified') {
-        return config.collaboraEditorUrl;
-    } else if (editorMode === 'collabora') {
-        return config.collaboraOfficialUrl;
-    } else if (editorMode === 'document-source') {
-        return config.documentSourceUrl;
+        return config.unifiedEditorUrl;
     }
 
     // Multi-editor mode: use specialized editors
     switch (docType) {
         case 'spreadsheet':
-            return config.collaboraSheetsUrl;
+            return config.sheetsEditorUrl;
         case 'presentation':
-            return config.collaboraPresentationUrl;
+            return config.presentationEditorUrl;
         case 'document':
         default:
-            return config.collaboraDocumentUrl;
+            return config.documentEditorUrl;
     }
 }
 
 /**
- * Get the PUBLIC Collabora URL for a document type (for browser iframe)
+ * Get the PUBLIC editor URL for a document type (for browser iframe)
  * Used for building the iframe src that the browser will load
  * @param {string} docType - The document type (document, spreadsheet, presentation)
- * @param {string} editorMode - The editor mode (teamsync-unified, multi-editor, collabora, document-source)
+ * @param {string} editorMode - The editor mode (teamsync-unified, multi-editor)
  */
-function getCollaboraPublicUrlForType(docType, editorMode = config.editorMode) {
+function getEditorPublicUrlForType(docType, editorMode = config.editorMode) {
     // Route based on editor mode
     if (editorMode === 'teamsync-unified') {
-        return config.collaboraEditorPublicUrl;
-    } else if (editorMode === 'collabora') {
-        return config.collaboraOfficialPublicUrl;
-    } else if (editorMode === 'document-source') {
-        return config.documentSourcePublicUrl;
+        return config.unifiedEditorPublicUrl;
     }
 
     // Multi-editor mode: use specialized editors
     switch (docType) {
         case 'spreadsheet':
-            return config.collaboraSheetsPublicUrl;
+            return config.sheetsEditorPublicUrl;
         case 'presentation':
-            return config.collaboraPresentationPublicUrl;
+            return config.presentationEditorPublicUrl;
         case 'document':
         default:
-            return config.collaboraDocumentPublicUrl;
+            return config.documentEditorPublicUrl;
     }
 }
 
 // ============================================================================
-// Collabora Discovery Service
+// Editor Discovery Service
 // ============================================================================
 
-// Cache discovery per Collabora instance
+// Cache discovery per editor instance
 const discoveryCache = new Map(); // url -> { urlPath, timestamp }
 const DISCOVERY_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-async function fetchDiscovery(collaboraUrl) {
+async function fetchDiscovery(editorUrl) {
     const startTime = Date.now();
     try {
-        console.log(`[Discovery] Fetching from ${collaboraUrl}/hosting/discovery`);
-        const response = await fetch(`${collaboraUrl}/hosting/discovery`);
+        console.log(`[Discovery] Fetching from ${editorUrl}/hosting/discovery`);
+        const response = await fetch(`${editorUrl}/hosting/discovery`);
         const elapsed = Date.now() - startTime;
         if (!response.ok) {
             throw new Error(`Discovery fetch failed: ${response.status}`);
         }
         const xml = await response.text();
-        console.log(`[Discovery] Fetched from ${collaboraUrl} in ${elapsed}ms`);
+        console.log(`[Discovery] Fetched from ${editorUrl} in ${elapsed}ms`);
 
         // Parse the discovery XML to extract URL patterns
         const urlMatch = xml.match(/urlsrc="([^"]+cool\.html[^"]*)"/);
@@ -390,8 +372,8 @@ async function fetchDiscovery(collaboraUrl) {
             const fullUrl = urlMatch[1];
             const urlPath = new URL(fullUrl).pathname;
             const cache = { urlPath, timestamp: Date.now() };
-            discoveryCache.set(collaboraUrl, cache);
-            console.log(`[Discovery] Found Collabora URL path for ${collaboraUrl}:`, urlPath);
+            discoveryCache.set(editorUrl, cache);
+            console.log(`[Discovery] Found editor URL path for ${editorUrl}:`, urlPath);
             return cache;
         }
 
@@ -401,60 +383,59 @@ async function fetchDiscovery(collaboraUrl) {
             const fullUrl = fallbackMatch[1];
             const urlPath = new URL(fullUrl).pathname;
             const cache = { urlPath, timestamp: Date.now() };
-            discoveryCache.set(collaboraUrl, cache);
+            discoveryCache.set(editorUrl, cache);
             return cache;
         }
 
         throw new Error('Could not parse discovery XML');
     } catch (error) {
-        console.error(`[Discovery] Error for ${collaboraUrl}:`, error.message);
+        console.error(`[Discovery] Error for ${editorUrl}:`, error.message);
         return { urlPath: '/browser/dist/cool.html', timestamp: Date.now() };
     }
 }
 
-async function getCollaboraUrlPath(collaboraUrl) {
-    const cached = discoveryCache.get(collaboraUrl);
+async function getEditorUrlPath(editorUrl) {
+    const cached = discoveryCache.get(editorUrl);
     if (cached && (Date.now() - cached.timestamp) < DISCOVERY_CACHE_TTL) {
         return cached.urlPath;
     }
-    const discovery = await fetchDiscovery(collaboraUrl);
+    const discovery = await fetchDiscovery(editorUrl);
     return discovery.urlPath;
 }
 
 async function buildIframeSrc(fileId, accessToken, filename, editorMode = config.editorMode) {
     const startTime = Date.now();
-    // Determine which Collabora instance to use based on file type and editor mode
+    // Determine which editor instance to use based on file type and editor mode
     const docType = getDocumentType(filename);
 
-    const collaboraInternalUrl = getCollaboraUrlForType(docType, editorMode);
-    const collaboraPublicUrl = getCollaboraPublicUrlForType(docType, editorMode);
+    const editorInternalUrl = getEditorUrlForType(docType, editorMode);
+    const editorPublicUrl = getEditorPublicUrlForType(docType, editorMode);
 
     const modeLabels = {
         'teamsync-unified': 'TEAMSYNC UNIFIED',
-        'multi-editor': 'MULTI-EDITOR',
-        'collabora': 'COLLABORA OFFICIAL'
+        'multi-editor': 'MULTI-EDITOR'
     };
     console.log(`[Router] Building iframe for "${filename}" (${docType}) - ${modeLabels[editorMode] || editorMode} MODE`);
 
-    console.log(`[Router]   Internal URL: ${collaboraInternalUrl}`);
-    console.log(`[Router]   Public URL:   ${collaboraPublicUrl}`);
+    console.log(`[Router]   Internal URL: ${editorInternalUrl}`);
+    console.log(`[Router]   Public URL:   ${editorPublicUrl}`);
 
-    const urlPath = await getCollaboraUrlPath(collaboraInternalUrl);
+    const urlPath = await getEditorUrlPath(editorInternalUrl);
     const discoveryElapsed = Date.now() - startTime;
     console.log(`[Router]   Discovery lookup: ${discoveryElapsed}ms`);
 
-    // Use wopiCallbackUrl for the WOPISrc - this is what Collabora (inside Docker) calls back to
+    // Use wopiCallbackUrl for the WOPISrc - this is what TeamSync Editor (inside Docker) calls back to
     const wopiSrc = encodeURIComponent(`${config.wopiCallbackUrl}/wopi/files/${fileId}`);
 
     console.log(`[Router] File "${filename}" (${docType})`);
-    console.log(`  Internal URL: ${collaboraInternalUrl}`);
-    console.log(`  Public URL:   ${collaboraPublicUrl}`);
+    console.log(`  Internal URL: ${editorInternalUrl}`);
+    console.log(`  Public URL:   ${editorPublicUrl}`);
 
     // Add cache-busting timestamp to ensure fresh tokens are used
     const cacheBuster = Date.now();
 
     // Return the PUBLIC URL for the browser iframe
-    return `${collaboraPublicUrl}${urlPath}?WOPISrc=${wopiSrc}&access_token=${accessToken}&lang=en&_t=${cacheBuster}`;
+    return `${editorPublicUrl}${urlPath}?WOPISrc=${wopiSrc}&access_token=${accessToken}&lang=en&_t=${cacheBuster}`;
 }
 
 // ============================================================================
@@ -519,12 +500,12 @@ const upload = multer({
 // ============================================================================
 
 /**
- * Health check - checks all Collabora instances
+ * Health check - checks all editor instances
  */
 app.get('/api/health', async (req, res) => {
     try {
         if (config.standaloneMode) {
-            // Check all three Collabora instances
+            // Check all editor instances
             const checkInstance = async (name, url) => {
                 const startTime = Date.now();
                 try {
@@ -543,23 +524,17 @@ app.get('/api/health', async (req, res) => {
                 }
             };
 
-            const [docStatus, sheetsStatus, presentationStatus, editorStatus, collaboraStatus, documentSourceStatus] = await Promise.all([
-                checkInstance('document', config.collaboraDocumentUrl),
-                checkInstance('sheets', config.collaboraSheetsUrl),
-                checkInstance('presentation', config.collaboraPresentationUrl),
-                checkInstance('editor', config.collaboraEditorUrl),
-                checkInstance('collabora', config.collaboraOfficialUrl),
-                checkInstance('document-source', config.documentSourceUrl)
+            const [docStatus, sheetsStatus, presentationStatus, editorStatus] = await Promise.all([
+                checkInstance('document', config.documentEditorUrl),
+                checkInstance('sheets', config.sheetsEditorUrl),
+                checkInstance('presentation', config.presentationEditorUrl),
+                checkInstance('editor', config.unifiedEditorUrl)
             ]);
 
             // Determine health based on current editor mode
             let allHealthy;
             if (config.editorMode === 'teamsync-unified') {
                 allHealthy = editorStatus === 'healthy';
-            } else if (config.editorMode === 'collabora') {
-                allHealthy = collaboraStatus === 'healthy';
-            } else if (config.editorMode === 'document-source') {
-                allHealthy = documentSourceStatus === 'healthy';
             } else {
                 // multi-editor mode
                 allHealthy = docStatus === 'healthy' && sheetsStatus === 'healthy' && presentationStatus === 'healthy';
@@ -568,9 +543,7 @@ app.get('/api/health', async (req, res) => {
             const anyHealthy = docStatus === 'healthy' ||
                                sheetsStatus === 'healthy' ||
                                presentationStatus === 'healthy' ||
-                               editorStatus === 'healthy' ||
-                               collaboraStatus === 'healthy' ||
-                               documentSourceStatus === 'healthy';
+                               editorStatus === 'healthy';
 
             return res.json({
                 status: allHealthy ? 'healthy' : (anyHealthy ? 'partial' : 'degraded'),
@@ -581,9 +554,7 @@ app.get('/api/health', async (req, res) => {
                     'teamsync-document': docStatus,
                     'teamsync-sheets': sheetsStatus,
                     'teamsync-presentation': presentationStatus,
-                    'teamsync-editor': editorStatus,
-                    'collabora': collaboraStatus,
-                    'document-source': documentSourceStatus
+                    'teamsync-editor': editorStatus
                 }
             });
         }
@@ -599,7 +570,7 @@ app.get('/api/health', async (req, res) => {
 
 /**
  * Get/Set editor mode configuration
- * Editor modes: 'teamsync-unified' | 'multi-editor' | 'collabora'
+ * Editor modes: 'teamsync-unified' | 'multi-editor'
  */
 app.get('/api/config/editor-mode', (req, res) => {
     res.json({
@@ -610,7 +581,7 @@ app.get('/api/config/editor-mode', (req, res) => {
 
 app.post('/api/config/editor-mode', (req, res) => {
     const { editorMode } = req.body;
-    const validModes = ['teamsync-unified', 'multi-editor', 'collabora', 'document-source'];
+    const validModes = ['teamsync-unified', 'multi-editor'];
 
     if (editorMode && validModes.includes(editorMode)) {
         config.editorMode = editorMode;
@@ -1013,13 +984,11 @@ app.listen(PORT, () => {
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
 
-Collabora Instances:
+TeamSync Editor Instances:
   - Document:     ${config.collaboraDocumentUrl}
   - Sheets:       ${config.collaboraSheetsUrl}
   - Presentation: ${config.collaboraPresentationUrl}
   - Editor:       ${config.collaboraEditorUrl}
-  - Collabora:    ${config.collaboraOfficialUrl}
-  - Doc Source:   ${config.documentSourceUrl}
 
 Editor Mode: ${config.editorMode}
 
@@ -1044,16 +1013,6 @@ Documents loaded: ${Array.from(localDocuments.keys()).join(', ') || 'none'}
   .xlsx/.xls/.ods -> TeamSync Sheets (port 9981)
   .pptx/.ppt/.odp -> TeamSync Presentation (port 9982)`,
                 setup: '  docker-compose -f docker-compose.multi.yml up -d'
-            },
-            'collabora': {
-                label: 'Collabora Official',
-                routing: '  All documents -> Official Collabora CODE (port 9984)',
-                setup: '  docker run -e "domain=host.docker.internal" -p 9984:9980 collabora/code'
-            },
-            'document-source': {
-                label: 'Document Source (Forked)',
-                routing: '  All documents -> TeamSync Document Source (port 9985)',
-                setup: '  Built from editor-source repo with custom branding'
             }
         };
 

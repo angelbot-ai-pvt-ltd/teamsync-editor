@@ -25,15 +25,13 @@ class TeamSyncApp {
         this.currentToken = null;
         this.isConnected = false;
         this.currentFilter = 'all';
-        // Editor modes: 'teamsync-unified' | 'multi-editor' | 'collabora' | 'document-source'
+        // Editor modes: 'teamsync-unified' | 'multi-editor'
         this.editorMode = localStorage.getItem('editorMode') || 'teamsync-unified';
         this.serviceStatus = {
             'teamsync-document': 'checking',
             'teamsync-sheets': 'checking',
             'teamsync-presentation': 'checking',
-            'teamsync-editor': 'checking',
-            'collabora': 'checking',
-            'document-source': 'checking'
+            'teamsync-editor': 'checking'
         };
 
         // File type mappings
@@ -126,7 +124,7 @@ class TeamSyncApp {
     }
 
     /**
-     * Change editor mode (teamsync-unified, multi-editor, or collabora)
+     * Change editor mode (teamsync-unified or multi-editor)
      */
     async setEditorMode(mode) {
         if (mode === this.editorMode) return;
@@ -157,9 +155,7 @@ class TeamSyncApp {
         // Show feedback
         const modeNames = {
             'teamsync-unified': 'TeamSync Editor',
-            'multi-editor': 'Multi-Editor',
-            'collabora': 'Collabora',
-            'document-source': 'Doc Source'
+            'multi-editor': 'Multi-Editor'
         };
         this.showSuccess(`Switched to ${modeNames[mode]} mode`);
     }
@@ -308,7 +304,8 @@ class TeamSyncApp {
             this.serviceStatus = {
                 'teamsync-document': 'not reachable',
                 'teamsync-sheets': 'not reachable',
-                'teamsync-presentation': 'not reachable'
+                'teamsync-presentation': 'not reachable',
+                'teamsync-editor': 'not reachable'
             };
             this.updateProductStatusCards();
             this.updateServiceIndicators();
@@ -351,16 +348,6 @@ class TeamSyncApp {
             const status = this.serviceStatus['teamsync-editor'];
             const healthClass = status === 'healthy' ? 'healthy' : 'unhealthy';
             container.innerHTML = `<span class="service-indicator unified ${healthClass}" title="teamsync-editor: ${status}">TeamSync</span>`;
-        } else if (this.editorMode === 'collabora') {
-            // Show Collabora indicator
-            const status = this.serviceStatus['collabora'];
-            const healthClass = status === 'healthy' ? 'healthy' : 'unhealthy';
-            container.innerHTML = `<span class="service-indicator collabora ${healthClass}" title="collabora: ${status}">Collabora</span>`;
-        } else if (this.editorMode === 'document-source') {
-            // Show Document Source indicator
-            const status = this.serviceStatus['document-source'];
-            const healthClass = status === 'healthy' ? 'healthy' : 'unhealthy';
-            container.innerHTML = `<span class="service-indicator document-source ${healthClass}" title="document-source: ${status}">Doc Source</span>`;
         } else {
             // Show multi-app indicators
             const services = [
@@ -518,12 +505,6 @@ class TeamSyncApp {
         if (this.editorMode === 'teamsync-unified') {
             // In TeamSync unified mode, all file types use the same editor service
             return this.serviceStatus['teamsync-editor'] === 'healthy';
-        } else if (this.editorMode === 'collabora') {
-            // In Collabora mode, use the official Collabora service
-            return this.serviceStatus['collabora'] === 'healthy';
-        } else if (this.editorMode === 'document-source') {
-            // In Document Source mode, use the teamsync-document-source service
-            return this.serviceStatus['document-source'] === 'healthy';
         }
         // In multi-editor mode, check the specific service for this document type
         const productInfo = this.getProductInfo(docType);

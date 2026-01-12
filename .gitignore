@@ -62,3 +62,7 @@ build/
 
 # Plan/documentation folder (internal notes)
 plan/
+
+# Archive folder
+archive/
+docker/archive/
