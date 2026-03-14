@@ -17,8 +17,8 @@
 #   ./docker/scripts/build.sh minimal all        # Build all minimal images
 #
 # Environment Variables:
-#   LO_CORE_VERSION  - LibreOffice core version (default: 24.04)
-#   COOL_VERSION     - Collabora Online version (default: co-24.04)
+#   LO_CORE_VERSION  - LibreOffice core version (default: 25.04)
+#   COOL_VERSION     - Collabora Online version (default: co-25.04)
 #   IMAGE_TAG        - Docker image tag (default: latest)
 #   REGISTRY         - Docker registry (default: none)
 #
@@ -33,8 +33,8 @@ cd "$(dirname "$0")/../.."
 # Configuration
 # =============================================================================
 
-LO_CORE_VERSION="${LO_CORE_VERSION:-24.04}"
-COOL_VERSION="${COOL_VERSION:-cp-24.04.6-2}"
+LO_CORE_VERSION="${LO_CORE_VERSION:-25.04}"
+COOL_VERSION="${COOL_VERSION:-cp-25.04.9-2}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 REGISTRY="${REGISTRY:-}"
 
@@ -73,7 +73,7 @@ for arg in "$@"; do
             echo ""
             echo "Environment Variables:"
             echo "  LO_CORE_VERSION  LibreOffice core version (default: 24.04)"
-            echo "  COOL_VERSION     Collabora Online version (default: co-24.04)"
+            echo "  COOL_VERSION     Collabora Online version (default: co-25.04)"
             echo "  IMAGE_TAG        Docker image tag (default: latest)"
             echo "  REGISTRY         Docker registry URL"
             echo ""

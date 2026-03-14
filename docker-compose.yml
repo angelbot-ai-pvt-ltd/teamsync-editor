@@ -13,9 +13,9 @@ services:
       dockerfile: docker/Dockerfile
       args:
         # LibreOffice core version (pre-built assets)
-        LO_CORE_VERSION: "24.04"
+        LO_CORE_VERSION: "25.04"
         # Collabora Online branch/tag
-        COOL_VERSION: "distro/collabora/co-24.04"
+        COOL_VERSION: "distro/collabora/co-25.04"
         # Branding
         BRAND_NAME: "TeamSync Editor"
         BRAND_SHORT: "TeamSync"
