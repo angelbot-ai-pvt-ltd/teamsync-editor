@@ -850,6 +850,11 @@ app.post('/wopi/files/:fileId/contents', validateWopiToken, express.raw({ type: 
         return res.status(409).json({ error: 'Lock mismatch' });
     }
 
+    // Validate request body type (must be a Buffer from express.raw)
+    if (!Buffer.isBuffer(req.body)) {
+        return res.status(400).json({ error: 'Invalid request body' });
+    }
+
     // Update document
     doc.content = req.body;
     doc.size = req.body.length;
