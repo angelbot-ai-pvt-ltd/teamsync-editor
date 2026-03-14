@@ -850,9 +850,19 @@ app.post('/wopi/files/:fileId/contents', validateWopiToken, express.raw({ type: 
         return res.status(409).json({ error: 'Lock mismatch' });
     }
 
+    // Validate and normalize request body to a Buffer to avoid type confusion
+    let contentBuffer;
+    if (Buffer.isBuffer(req.body)) {
+        contentBuffer = req.body;
+    } else if (typeof req.body === 'string') {
+        contentBuffer = Buffer.from(req.body);
+    } else {
+        return res.status(400).json({ error: 'Invalid request body type' });
+    }
+
     // Update document
-    doc.content = req.body;
-    doc.size = req.body.length;
+    doc.content = contentBuffer;
+    doc.size = contentBuffer.length;
     doc.lastModified = new Date().toISOString();
     localDocuments.set(fileId, doc);
 
