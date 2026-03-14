@@ -107,10 +107,11 @@ if ! grep -q 'desc="teamsync-hosts"' "$CONFIG_FILE" 2>/dev/null; then
                 <host desc="sample-app" allow="true">sample-app</host>\
                 <host desc="teamsync-sample-app" allow="true">teamsync-sample-app</host>\
                 <host desc="railway" allow="true">.*\\.up\\.railway\\.app</host>\
+                <host desc="railway-internal" allow="true">teamsync-editor\\.railway\\.internal</host>\
                 <host desc="render" allow="true">.*\\.onrender\\.com</host>\
             </group>\
             </alias_groups>|g' "$CONFIG_FILE"
-    echo "  Added WOPI host group: localhost, 127.0.0.1, host.docker.internal, *.railway.app, *.onrender.com"
+    echo "  Added WOPI host group: localhost, 127.0.0.1, host.docker.internal, *.railway.app, teamsync-editor.railway.internal, *.onrender.com"
 else
     echo "  WOPI hosts already configured (skipping)"
 fi
