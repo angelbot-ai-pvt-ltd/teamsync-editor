@@ -993,7 +993,7 @@ TeamSync Editor Instances:
 Editor Mode: ${config.editorMode}
 
 Authentication:
-  - JWT Secret: [REDACTED] (${config.jwtSecret.length} chars)
+  - JWT Secret: [REDACTED]
   - Token TTL: ${config.tokenTtlSeconds} seconds
   - Demo User: ${config.demoUser.name} (${config.demoUser.id})
 
