@@ -963,7 +963,15 @@ app.post('/wopi/files/:fileId', validateWopiToken, (req, res) => {
 // SPA Fallback
 // ============================================================================
 
-app.get('*', (req, res) => {
+// Rate limit SPA fallback to protect against excessive file system access
+const spaFallbackLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 SPA fallback requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.get('*', spaFallbackLimiter, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
