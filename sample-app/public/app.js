@@ -691,7 +691,7 @@ class TeamSyncApp {
                 break;
             default:
                 if (message.MessageId) {
-                    console.log(`[DEBUG ${timestamp}] Editor message: ${message.MessageId}`, message.Values);
+                    console.log(`[DEBUG ${timestamp}] Editor message:`, message.MessageId, message.Values);
                 }
         }
     }
